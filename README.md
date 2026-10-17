@@ -7,124 +7,119 @@
 **فارسی** · [English](#english)
 
 «فروغ؛ پنجره‌ای روشن به اینترنت آزاد»
+*Forough — a bright window to the open internet*
 
 </div>
 
 ## فارسی
 
-### فروغ چیست؟
+### فروغ اندروید چیست؟
 
-فروغ یک کلاینت وی‌پی‌‌ان اندرویدِ سریع و نگهداری‌شده توسط جامعه است که بر پایه کلاینت متن‌باز [سایفون (Psiphon)](https://github.com/Psiphon-Inc/psiphon-android) ساخته شده است. فروغ رابط کاربری فارسی‌محور دارد و کنترل‌های بیشتری برای اتصال در اختیار شما می‌گذارد: انتخاب ناحیه (کشور خروجی)، انتخاب پروتکل، تنظیمات CDN Fronting با اسکنر داخلی، حالت Beast، اشتراک‌گذاری پروکسی در شبکه محلی و حالت مخفی‌سازی ظاهر برنامه.
+**فروغ اندروید، پورتِ دقیق کلاینت لینوکس فروغ است** — همان موتور، همان امکانات، همان تم. این نسخهٔ بومی (native) با Kotlin و Jetpack Compose نوشته شده و مستقیماً از همان موتور نسخهٔ دسکتاپ استفاده می‌کند: فورک اختصاصی `psiphon-tunnel-core` با لبه‌های CDN رتبه‌بندی‌شده بر اساس سرعت واقعی تونل. کل ترافیک دستگاه از طریق `VpnService` اندروید و tun2socks از تونل عبور می‌کند.
 
-نمایش صادقانه: موتور اتصال فروغ همان شبکه و زیرساخت Psiphon است؛ بنابراین ارجاع‌های «Psiphon» در برنامه و مستندات به آن زیرساخت اشاره دارند و حفظ شده‌اند.
+> نمایش صادقانه: موتور اتصال فروغ همان شبکه و زیرساخت [Psiphon](https://psiphon.ca) است؛ ارجاع‌های «Psiphon» به آن زیرساخت اشاره دارند. فروغ پروژه‌ای غیررسمی است و وابسته به Psiphon Inc. نیست.
 
-### امکانات
+### امکانات — دقیقاً مثل نسخهٔ لینوکس
 
-- **رابط کاربری فارسی** به‌همراه پشتیبانی از چند زبان
-- **انتخاب ناحیه خروجی** (کشور پروکسی) با فهرست پرچم‌ها
-- **انتخاب پروتکل** و حالت‌های اتصال مختلف (OSSH/VPN و حالت‌های CDN-fronted)
-- **حالت Beast** برای اسکن تهاجمی‌تر لبه‌های CDN و یافتن مسیر اتصال
-- **تنظیمات CDN Fronting**: فهرست سفارشی IP و SNI، نمایش مسیر اسکن CDN در گزارش‌ها
-- **حالت Conduit**: خودکار / اختصاصی / عمومی با زمان‌بیک قابل تنظیم
-- **اشتراک‌گذاری پروکسی در شبکه محلی** (HTTP و SOCKS5 با احراز هویت اختیاری) برای استفاده سایر دستگاه‌ها از تونل
-- **حالت مخفی (Stealth)**: تغییر آیکون و نام برنامه در لانچر (ماشین‌حساب، هواشناسی، یادداشت‌ها، ساعت) و اعلان‌های متناسب با همان ظاهر
-- **هشدار ترافیک ناامن (MalAware)** و مسدودسازی خودکار سایت‌های مخرب
-- **NFC Bump** برای انتقال تنظیمات اتصال به دستگاه دیگر
-- حذف صفحات حامی مالی، بدون تبلیغ
-- بدون نیاز به حساب کاربری؛ رایگان و متن‌باز
+- **رابط کاربری تیرهٔ libadwaita مانند دسکتاپ** — پشتیبانی کامل فارسی راست‌به‌چپ + انگلیسی
+- **دکمهٔ اتصال دایره‌ای ۹۶dp** با زنجیرهٔ وضعیت صادقانه (اتصال → متصل → اتصال مجدد) و نمایش **پروتکل واقعی برقرارشده** (از اعلان ActiveTunnel)
+- **اسکنر دستی لبه‌های CDN** — همان رنج‌ها و SNIهای نسخهٔ دسکتاپ (کلادفلر، فستلی، آکامای، کلادفرانت، بانی) با نتایج TCP+TLS میلی‌ثانیه و «استفاده از انتخاب‌شده‌ها»
+- **تست سرعت داخلی** — همان اندازه‌گیری دسکتاپ: TTFB (اتصال + TLS + اولین بایت) و دانلود ۱۰ مگابایتی با سقف ۱۵ ثانیه
+- **نمودار زندهٔ ترافیک ۶۰ ثانیه‌ای** — دو اسپارک‌لاین دانلود/آپلود با رنگ‌های همان نمودار دسکتاپ
+- **انتخاب منطقهٔ خروجی** (۲۹ کشور با پرچم) و **حالت پروتکل** (خودکار / کانالیوت / مستقیم / فرونتینگ CDN)
+- **حالت بیست (Beast)** — برقراری تهاجمی روی همهٔ سرورها و همهٔ پروتکل‌ها
+- **فرونتینگ CDN سفارشی** — کاندیدهای IP (IPv4/CIDR) و SNI دلخواه با همان Overrideهای نسخهٔ دسکتاپ
+- **لیست سرورهای OSL** — آدرس‌های ریشهٔ لیست سرورهای مبهم‌شده
+- **کانالیوت (in-proxy)** با شناسهٔ بخش شخصی برای جفت‌سازی خصوصی
+- **بازجوی خودکار ترافیک** — بررسی دوره‌ای عبور واقعی ترافیک از تونل و ری‌استارت خودکار تونل مرده (همان سیاست دسکتاپ)
+- **گزارش عیب‌یابی** — کپی یک‌ضربه‌ای همه‌چیز برای گزارش مشکل
+- بدون تبلیغ، بدون صفحهٔ حامی مالی؛ رایگان و متن‌باز
 
 ### نصب
 
 1. به بخش [Releases](https://github.com/nayrasolcr-arch/forough-android/releases) بروید.
-2. آخرین فایل `Forough-<نسخه>.apk` را دانلود کنید.
-3. فایل را باز کرده و نصب را تأیید کنید (برای نصب از خارج از فروشگاه، لازم است «نصب از منابع ناشناس» برای مرورگر یا فایل‌منیجر شما فعال باشد).
+2. فایل `Forough-2.0.0-android.apk` را دانلود کنید.
+3. نصب را تأیید کنید («نصب از منابع ناشناس» را برای فایل‌منیجر خود فعال کنید).
+4. اولین اتصال، مجوز VPN اندروید را می‌خواهد — تأیید کنید و دکمهٔ اتصال را بزنید.
 
-### ساخت از سورس (Android Studio / Gradle)
+نسخه‌ها با کلید توزیع اجتماعی فروغ امضا می‌شوند؛ به‌روزرسانی‌ها بدون حذف برنامه نصب می‌شوند.
+
+### ساخت از سورس
 
 ```bash
-git clone https://github.com/nayrasolcr-arch/forough-android
-cd forough-android
-# حداقل: JDK 8+، Android SDK 35، NDK (برای tun2socks)
-./gradlew assembleRelease
-# خروجی: app/build/outputs/apk/release/Forough-release.apk
+# 1) موتور (AAR) را بسازید — GitHub Actions یا دستی:
+#    gomobile bind ... خروجی: ca.psiphon.aar
+# 2) AAR را در مسیر زیر قرار دهید:
+#    native/app/libs/ca.psiphon.aar
+# 3) کلاینت بومی را بسازید (JDK 17 + Gradle 8.9):
+gradle -p native assembleRelease
+# خروجی: native/app/build/outputs/apk/release/app-release.apk
 ```
 
-نکته: ساخت نهاییِ منتشرشده در CI به مقادیر مخفی (کلید امضا، فهرست سرورها و کلید MaxMind) نیاز دارد که فقط در مخزن اصلی سازمان موجود است؛ به همین دلیل ساخت لوکال برای توسعه و آزمایش است.
-
-### سلب مسئولیت
-
-این برنامه به **هیچ‌وجه** توسط Psiphon Inc. توسعه نیافته، تأیید یا حمایت نشده و وابسته به آن نیست.
-
-برای نسخه رسمی سایفون به https://psiphon.ca مراجعه کنید.
-
-این نرم‌افزار بدون هیچ‌گونه ضمانتی ارائه می‌شود؛ استفاده از آن بر عهده خود کاربر است.
-
-### مجوز
-
-منتشرشده تحت مجوز [GNU GPL v3.0](LICENSE) — همان مجوز کلاینت اندروید Psiphon.
-
-### کلاینت‌های هم‌خانواده
-
-- 🐧 لینوکس: [forough-linux](https://github.com/nayrasolcr-arch/forough-linux)
-- 🪟 ویندوز: [forough-windows](https://github.com/nayrasolcr-arch/forough-windows)
+بیلد کامل و خودکار در GitHub Actions انجام می‌شود: تب **Actions → Build & Release**.
 
 ---
 
-<a id="english"></a>
 ## English
 
-### What is Forough?
+### What is Forough for Android?
 
-Forough is a fast, community-maintained Android VPN client built on the [Psiphon open-source client](https://github.com/Psiphon-Inc/psiphon-android). It ships a Persian-first UI and gives you extra connection controls: egress region selection, protocol selection, CDN fronting settings with a built-in scanner, Beast mode, LAN proxy sharing, and app-disguise stealth mode.
+**Forough Android is an exact port of the Forough Linux desktop client** — same engine, same features, same theme. The native client is written in Kotlin + Jetpack Compose and runs the exact engine the desktop ships: the Forough `psiphon-tunnel-core` fork with quality-ranked CDN edges (candidates ranked by measured real-tunnel establishment time). Whole-device routing goes through Android's `VpnService` + tun2socks.
 
-Honest attribution: Forough connects through the Psiphon network and infrastructure, so "Psiphon" references in the app and docs refer to that upstream network and are kept on purpose.
+> Honest attribution: Forough's connectivity engine is the [Psiphon](https://psiphon.ca) network and infrastructure; "Psiphon" references point to it. Forough is an unofficial project, not affiliated with Psiphon Inc.
 
-### Features
+### Features — same as the Linux client
 
-- **Persian-first UI** with multi-language support
-- **Egress region selection** (proxy country) with flag picker
-- **Protocol selection** and connection modes (OSSH/VPN and CDN-fronted variants)
-- **Beast mode** for more aggressive CDN edge scanning
-- **CDN fronting settings**: custom IP & SNI lists, CDN scan route shown in the logs
-- **Conduit mode**: auto / dedicated / public with configurable timeout
-- **LAN proxy sharing** (HTTP + SOCKS5 with optional authentication) so other devices can use your tunnel
-- **Stealth mode**: change the app icon and name in the launcher (Calculator, Weather, Notes, Clock) with matching stealth notifications
-- **MalAware unsafe-traffic alerts** with automatic malicious-site blocking
-- **NFC Bump** to transfer connection info to another device
-- No sponsor pages, no ads
-- No account required; free and open source
+- **libadwaita-style dark theme** like the desktop, full Persian RTL + English
+- **96dp circular connect button** with an honest status chain and the **real established protocol** (ActiveTunnel notice)
+- **Manual CDN edge scanner** — identical ranges/SNIs as the desktop (Cloudflare, Fastly, Akamai, CloudFront, Bunny) with per-edge TCP+TLS timings and "Use selected"
+- **Built-in speed test** — same measurements as the desktop: TTFB (connect + TLS + first byte) and a 10 MB download with the 15s cap
+- **Live 60-second traffic graph** — download/upload sparklines in the desktop's colors
+- **Egress region selection** (29 countries with flags) and **protocol modes** (Auto / Conduit / Direct / CDN Fronting)
+- **Beast mode** — aggressive establishment across all servers and protocols
+- **Custom CDN fronting** — IPv4/CIDR IP candidates + custom SNI with the same dial overrides as the desktop
+- **OSL root URLs** — obfuscated server list buckets
+- **In-proxy (conduit)** with a personal compartment ID for private pairing
+- **Automatic traffic probe** — periodic end-to-end checks and auto-restart for dead tunnels (the desktop policy)
+- **Diagnostics report** — one-tap copy for bug reports
+- No ads, no sponsor pages; free and open source
 
 ### Install
 
-1. Go to [Releases](https://github.com/nayrasolcr-arch/forough-android/releases).
-2. Download the latest `Forough-<version>.apk`.
-3. Open the APK and confirm the install (you may need to allow "install unknown apps" for your browser or file manager).
+1. Grab `Forough-2.0.0-android.apk` from [Releases](https://github.com/nayrasolcr-arch/forough-android/releases).
+2. Install it (allow "install unknown apps" for your file manager).
+3. Approve the Android VPN prompt on first connect and hit the connect button.
 
-### Build from source (Android Studio / Gradle)
+Releases are signed with the Forough community distribution key, so updates install without uninstalling.
+
+### Build from source
 
 ```bash
-git clone https://github.com/nayrasolcr-arch/forough-android
-cd forough-android
-# Requires: JDK 8+, Android SDK 35, NDK (for tun2socks)
-./gradlew assembleRelease
-# Output: app/build/outputs/apk/release/Forough-release.apk
+# 1) Build the engine AAR (CI does this): gomobile bind ... -> ca.psiphon.aar
+# 2) Drop it at native/app/libs/ca.psiphon.aar
+# 3) Build the native client (JDK 17 + Gradle 8.9):
+gradle -p native assembleRelease
 ```
 
-Note: the published CI build needs repository secrets (signing keystore, server list, MaxMind key) that exist only on the upstream organization repo, so a local build is intended for development and testing.
+Or just run **Actions → Build & Release** on GitHub.
 
-### Disclaimer
+### Repository layout
 
-This application is **NOT** developed, endorsed, sponsored, or affiliated with Psiphon Inc. in any way.
-
-For the official Psiphon application, visit: https://psiphon.ca
-
-THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. USE AT YOUR OWN RISK.
-
-### License
-
-Licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0), the same license as the original Psiphon Android client.
+| Path | What it is |
+|------|------------|
+| `native/` | **The Forough native client** (Kotlin + Compose) — the exact port of the Linux client |
+| `app/` | The legacy Psiphon-Android–based client (kept for reference / org parity) |
+| `.github/workflows/build.yml` | Builds the tunnel-core AAR, the native APK, and cuts the release |
 
 ### Sibling clients
 
-- 🐧 Linux: [forough-linux](https://github.com/nayrasolcr-arch/forough-linux)
-- 🪟 Windows: [forough-windows](https://github.com/nayrasolcr-arch/forough-windows)
+- Linux (Fedora KDE, GTK4/libadwaita): [nayrasolcr-arch/forough-linux](https://github.com/nayrasolcr-arch/forough-linux)
+- Windows (MSYS2/GTK4 portable): [nayrasolcr-arch/forough-windows](https://github.com/nayrasolcr-arch/forough-windows)
+
+### Disclaimer
+
+This is an unofficial community client built on the open-source Psiphon network components (GPL-3.0). It is not the official Psiphon app and is not endorsed by Psiphon Inc. Use responsibly and in accordance with your local laws.
+
+## License
+
+GPL-3.0 — see [LICENSE](LICENSE).
