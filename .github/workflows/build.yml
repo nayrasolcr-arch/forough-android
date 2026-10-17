@@ -23,7 +23,7 @@ jobs:
       - name: Checkout tunnel-core
         uses: actions/checkout@v4
         with:
-          repository: shirokhorshid/psiphon-tunnel-core
+          repository: nayrasolcr-arch/psiphon-tunnel-core
           ref: ${{ inputs.tunnel_core_ref }}
           path: psiphon-tunnel-core
 
@@ -284,8 +284,8 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: shirokhorshid-apk
-          path: app/build/outputs/apk/release/ShirOKhorshid-release.apk
+          name: forough-apk
+          path: app/build/outputs/apk/release/Forough-release.apk
           retention-days: 1
 
   release:
@@ -297,7 +297,7 @@ jobs:
       - name: Download APK artifact
         uses: actions/download-artifact@v4
         with:
-          name: shirokhorshid-apk
+          name: forough-apk
 
       - name: Set version info
         id: version
@@ -309,8 +309,8 @@ jobs:
 
       - name: Prepare release assets
         run: |
-          mv ShirOKhorshid-release.apk "ShirOKhorshid-${{ steps.version.outputs.calver }}.apk"
-          APK="ShirOKhorshid-${{ steps.version.outputs.calver }}.apk"
+          mv Forough-release.apk "Forough-${{ steps.version.outputs.calver }}.apk"
+          APK="Forough-${{ steps.version.outputs.calver }}.apk"
           SHA256=$(sha256sum "$APK" | cut -d' ' -f1)
           MD5=$(md5sum "$APK" | cut -d' ' -f1)
           echo "::notice::SHA-256: $SHA256"
@@ -325,11 +325,11 @@ jobs:
 
       - name: Create release
         run: |
-          APK="ShirOKhorshid-${{ steps.version.outputs.calver }}.apk"
+          APK="Forough-${{ steps.version.outputs.calver }}.apk"
           gh release create "${{ steps.version.outputs.tag }}" \
             "$APK" \
             --repo "${{ github.repository }}" \
-            --title "ShirOKhorshid ${{ steps.version.outputs.calver }}" \
+            --title "Forough ${{ steps.version.outputs.calver }}" \
             --notes-file checksums.txt \
             --latest
         env:
