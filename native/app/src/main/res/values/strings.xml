@@ -109,6 +109,7 @@
     <string name="speed_test_unavailable">Connect first, then run the speed test</string>
     <string name="cdn_edges_updated">CDN edges updated</string>
     <string name="menu_more">More</string>
+    <string name="back">Back</string>
 
     <!-- Notification -->
     <string name="notif_channel">Tunnel status</string>

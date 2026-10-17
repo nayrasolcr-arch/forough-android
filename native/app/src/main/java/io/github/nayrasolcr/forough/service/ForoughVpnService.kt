@@ -52,12 +52,31 @@ class ForoughVpnService : VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_DISCONNECT -> {
+                // A disconnect usually arrives via startForegroundService()
+                // (from the UI or the notification action). Android requires
+                // every startForegroundService call to be answered with a
+                // startForeground() — skipping it crashes with
+                // ForegroundServiceDidNotStartInTime, so flash the foreground
+                // notification before tearing down.
+                startInForeground(getString(R.string.notif_disconnecting))
                 manager?.stop()
                 ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
                 stopSelf()
+                // Not sticky: after an explicit disconnect the system must
+                // not resurrect the tunnel (the "won't stay disconnected"
+                // symptom).
                 return START_NOT_STICKY
             }
             else -> {
+                if (intent == null) {
+                    // Sticky restart after the system killed the service:
+                    // resume only when a session is supposed to be live,
+                    // otherwise stay dead.
+                    if (!ForoughBus.running.value) {
+                        stopSelf()
+                        return START_NOT_STICKY
+                    }
+                }
                 startInForeground(getString(R.string.notif_connecting))
                 val options = SettingsStore(applicationContext).load()
                 manager?.start(options)

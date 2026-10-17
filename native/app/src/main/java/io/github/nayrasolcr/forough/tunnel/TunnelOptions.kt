@@ -11,8 +11,10 @@ enum class ProtocolMode(val configValue: String) {
     CDN_FRONTING("cdn_fronting");
 
     companion object {
+        // CDN fronting is the Forough default everywhere (desktop + Android):
+        // unknown stored values fall back to it too.
         fun fromConfig(value: String): ProtocolMode =
-            entries.firstOrNull { it.configValue == value } ?: AUTO
+            entries.firstOrNull { it.configValue == value } ?: CDN_FRONTING
     }
 }
 
@@ -59,7 +61,9 @@ data class Region(val code: String, val name: String) {
  * Android: the VpnService IS the whole-device routing.
  */
 data class TunnelOptions(
-    val protocol: ProtocolMode = ProtocolMode.AUTO,
+    // CDN fronting is the default mode — same as the Linux client's factory
+    // default after the measured-speed release (quality-ranked CDN edges).
+    val protocol: ProtocolMode = ProtocolMode.CDN_FRONTING,
     val region: String = "",
     val upstreamProxyUrl: String = "",
     val enableTimeout: Boolean = false,

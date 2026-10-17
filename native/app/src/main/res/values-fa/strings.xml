@@ -109,6 +109,7 @@
     <string name="speed_test_unavailable">اول وصل شوید، بعد تست سرعت را اجرا کنید</string>
     <string name="cdn_edges_updated">لبه‌های CDN به‌روز شد</string>
     <string name="menu_more">بیشتر</string>
+    <string name="back">بازگشت</string>
 
     <!-- نوتیفیکیشن -->
     <string name="notif_channel">وضعیت تونل</string>

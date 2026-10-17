@@ -81,7 +81,7 @@ fun StatsPanel(stats: TunnelStats, running: Boolean) {
             Divider()
             StatsRow(
                 stringResource(R.string.stats_traffic),
-                "↓ ${NetTools.humanBytes(stats.totalDownBytes)} · ↑ ${NetTools.humanBytes(stats.totalUpBytes)}"
+                trafficValue(stats, running)
             )
         }
     }
@@ -121,6 +121,17 @@ private fun humanStatus(status: String, running: Boolean): String = when {
     status == "reconnecting" -> "reconnecting"
     status == "exiting" -> "exiting"
     else -> status
+}
+
+/**
+ * Totals plus the live measured rates while the tunnel is up — the traffic
+ * row now answers "is data actually flowing?" at a glance.
+ */
+private fun trafficValue(stats: TunnelStats, running: Boolean): String {
+    val totals = "↓ ${NetTools.humanBytes(stats.totalDownBytes)} · ↑ ${NetTools.humanBytes(stats.totalUpBytes)}"
+    if (!running || stats.status != "connected") return totals
+    val rate = "↓ ${NetTools.humanSpeed(stats.downstreamBps)}/s · ↑ ${NetTools.humanSpeed(stats.upstreamBps)}/s"
+    return "$totals\n$rate"
 }
 
 private fun humanUptime(ms: Long): String {

@@ -1,6 +1,19 @@
 package io.github.nayrasolcr.forough.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,10 +31,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -103,15 +117,52 @@ fun ConnectionPanel(
             .padding(vertical = 12.dp)
     ) {
         // Circular connect button — 96dp like the desktop, suggested-action
-        // blue when idle, destructive-action red when running.
+        // blue when idle, destructive-action red when running. The color and
+        // press-scale animate smoothly, and a soft pulse breathes while the
+        // tunnel is establishing — the "alive" feel the desktop has.
+        val targetColor = when {
+            !running -> AdwAccent
+            stats.status == "connected" -> AdwDestructive
+            else -> AdwDestructive
+        }
+        val buttonColor by animateColorAsState(
+            targetValue = targetColor,
+            animationSpec = tween(350),
+            label = "connectButtonColor"
+        )
+        val interaction = remember { MutableInteractionSource() }
+        val pressed by interaction.collectIsPressedAsState()
+        val pressScale by animateFloatAsState(
+            targetValue = if (pressed) 0.92f else 1f,
+            animationSpec = tween(150),
+            label = "connectPressScale"
+        )
+        val connecting = running && stats.status != "connected"
+        val pulse = rememberInfiniteTransition(label = "connectPulse")
+        val pulseScale by pulse.animateFloat(
+            initialValue = 1f,
+            targetValue = if (connecting) 1.06f else 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(900),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "connectPulseScale"
+        )
+
         Button(
             onClick = { if (running) onDisconnect() else onConnect() },
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (running) AdwDestructive else AdwAccent,
+                containerColor = buttonColor,
                 contentColor = Color.White
             ),
-            modifier = Modifier.size(96.dp)
+            interactionSource = interaction,
+            modifier = Modifier
+                .size(96.dp)
+                .graphicsLayer {
+                    scaleX = pressScale * pulseScale
+                    scaleY = pressScale * pulseScale
+                }
         ) {
             Icon(
                 imageVector = if (running) Icons.Outlined.PortableWifiOff else Icons.Filled.VpnKey,
@@ -122,11 +173,21 @@ fun ConnectionPanel(
             )
         }
 
-        Text(
-            text = statusLabel(stats, running),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center
-        )
+        // Status label cross-fades between states instead of hard-swapping.
+        AnimatedContent(
+            targetState = statusLabel(stats, running),
+            transitionSpec = {
+                (fadeIn(tween(200)))
+                    .togetherWith(fadeOut(tween(150)))
+            },
+            label = "statusLabel"
+        ) { label ->
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center
+            )
+        }
 
         Text(
             text = ipLabel(stats),

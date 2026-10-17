@@ -18,18 +18,35 @@ class SettingsStore(context: Context) {
         get() = prefs.getString(KEY_LANGUAGE, "system") ?: "system"
         set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
 
-    fun load(): TunnelOptions = TunnelOptions(
-        protocol = ProtocolMode.fromConfig(prefs.getString(KEY_PROTOCOL, "auto") ?: "auto"),
-        region = prefs.getString(KEY_REGION, "") ?: "",
-        upstreamProxyUrl = prefs.getString(KEY_UPSTREAM, "") ?: "",
-        enableTimeout = prefs.getBoolean(KEY_TIMEOUT, false),
-        enableLan = prefs.getBoolean(KEY_LAN, false),
-        enableBeastMode = prefs.getBoolean(KEY_BEAST, true),
-        inproxyCompartmentId = prefs.getString(KEY_COMPARTMENT, "") ?: "",
-        cdnFrontingIpList = prefs.getString(KEY_CDN_IPS, "") ?: "",
-        cdnFrontingSni = prefs.getString(KEY_CDN_SNI, "") ?: "",
-        oslUrls = prefs.getString(KEY_OSL, "") ?: ""
-    )
+    fun load(): TunnelOptions {
+        migrateCdnDefault()
+        return TunnelOptions(
+            protocol = ProtocolMode.fromConfig(prefs.getString(KEY_PROTOCOL, "cdn_fronting") ?: "cdn_fronting"),
+            region = prefs.getString(KEY_REGION, "") ?: "",
+            upstreamProxyUrl = prefs.getString(KEY_UPSTREAM, "") ?: "",
+            enableTimeout = prefs.getBoolean(KEY_TIMEOUT, false),
+            enableLan = prefs.getBoolean(KEY_LAN, false),
+            enableBeastMode = prefs.getBoolean(KEY_BEAST, true),
+            inproxyCompartmentId = prefs.getString(KEY_COMPARTMENT, "") ?: "",
+            cdnFrontingIpList = prefs.getString(KEY_CDN_IPS, "") ?: "",
+            cdnFrontingSni = prefs.getString(KEY_CDN_SNI, "") ?: "",
+            oslUrls = prefs.getString(KEY_OSL, "") ?: ""
+        )
+    }
+
+    /**
+     * One-time migration: the client's factory default mode is now CDN
+     * fronting (the measured-speed mode). Previously-stored "auto" values
+     * move to cdn_fronting once; users can still pick another mode in
+     * settings afterwards.
+     */
+    private fun migrateCdnDefault() {
+        if (prefs.getBoolean(KEY_MIGRATED_CDN, false)) return
+        prefs.edit()
+            .putBoolean(KEY_MIGRATED_CDN, true)
+            .putString(KEY_PROTOCOL, ProtocolMode.CDN_FRONTING.configValue)
+            .apply()
+    }
 
     fun save(options: TunnelOptions) {
         prefs.edit()
@@ -86,6 +103,7 @@ class SettingsStore(context: Context) {
     companion object {
         private const val KEY_LANGUAGE = "language"
         private const val KEY_PROTOCOL = "protocol"
+        private const val KEY_MIGRATED_CDN = "migrated_cdn_default"
         private const val KEY_REGION = "region"
         private const val KEY_UPSTREAM = "upstream_proxy_url"
         private const val KEY_TIMEOUT = "enable_timeout"

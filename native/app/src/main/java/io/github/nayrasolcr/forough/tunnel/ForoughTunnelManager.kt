@@ -11,6 +11,7 @@ import io.github.nayrasolcr.forough.ForoughBus
 import io.github.nayrasolcr.forough.net.NetTools
 import io.github.nayrasolcr.forough.service.ForoughVpnService
 import io.github.nayrasolcr.forough.vpn.VpnManager
+import org.json.JSONObject
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -64,6 +65,11 @@ class ForoughTunnelManager(
     private var lastPerfReport = ""
     private var lastTrafficCode = 0
 
+    // Bytes arrive several times per second; the UI only needs ~2 updates
+    // per second, so the bytes path publishes at most this often.
+    private val statsPublishIntervalMs = 500L
+    @Volatile private var lastStatsPublishMs = 0L
+
     private var stats = TunnelStats()
     private val logs = ArrayList<String>()
 
@@ -80,8 +86,13 @@ class ForoughTunnelManager(
     @Synchronized
     fun start(options: TunnelOptions) {
         if (running) return
+        // stop() clears EngineBridge; re-register so a fast disconnect →
+        // connect cycle on a reused service instance never leaves the UI
+        // without its engine handle (speed test / diagnostics would go dead).
+        EngineBridge.manager = this
         this.options = options
         stopping = false
+        running = true
         trafficFailures = 0
         trafficEverOk = false
         autoRestartCount = 0
@@ -120,7 +131,11 @@ class ForoughTunnelManager(
 
     @Synchronized
     fun stop() {
-        if (!running && tunnel == null) {
+        // Only skip when nothing was ever started AND the UI isn't showing a
+        // running session — otherwise a failed start() would leave the bus
+        // stuck on running=true and the connect button would look dead
+        // (the "cannot disconnect" symptom).
+        if (!running && tunnel == null && !ForoughBus.running.value) {
             return
         }
         stopping = true
@@ -152,6 +167,8 @@ class ForoughTunnelManager(
             it.cdnScan = "-"
             it.trafficStatus = "-"
             it.routingStatus = "-"
+            it.downstreamBps = 0
+            it.upstreamBps = 0
             it.uptimeMs = 0
             it.connectedAtMs = 0
             it.connectDurationMs = 0
@@ -235,6 +252,18 @@ class ForoughTunnelManager(
     override fun onDiagnosticMessage(message: String) {
         appendLog(message)
         mutate { NoticeParser.apply(message, it, "127.0.0.1", parserState) }
+        // The AAR formats diagnostic notices as "Type: {json}" (not raw JSON),
+        // so surface Info messages to the beast-mode / CDN-scan parser to
+        // keep those stats rows live — desktop parity.
+        if (message.startsWith("Info: ")) {
+            try {
+                val inner = JSONObject(message.removePrefix("Info: ")).optString("message", "")
+                if (inner.isNotEmpty()) {
+                    mutate { NoticeParser.applyDiagnosticLine(inner, it) }
+                }
+            } catch (_: Exception) {
+            }
+        }
         maybeScheduleAfterConnect()
     }
 
@@ -252,6 +281,14 @@ class ForoughTunnelManager(
             }
             parserState.lastBytesTimeMs = now
             true
+        }
+        // Bytes are the only continuously-changing stats — without this
+        // throttled publish the traffic row and graph would freeze until the
+        // next lifecycle event (the "traffic not displayed" symptom).
+        val now = System.currentTimeMillis()
+        if (now - lastStatsPublishMs >= statsPublishIntervalMs) {
+            lastStatsPublishMs = now
+            publish()
         }
     }
 
@@ -284,12 +321,16 @@ class ForoughTunnelManager(
     override fun onConnected() {
         mutate {
             it.status = "connected"
+            it.tunnelCount = 1
+            it.publicIp = "-"
             if (it.connectedAtMs == 0L) it.connectedAtMs = System.currentTimeMillis()
             true
         }
         publish()
         scheduleTrafficCheck()
         schedulePerfProbe()
+        // Fill the Public IP row through the tunnel (desktop IpService parity).
+        fetchPublicIp()
     }
 
     override fun onAvailableEgressRegions(regions: MutableList<String>?) {
@@ -317,6 +358,9 @@ class ForoughTunnelManager(
     }
 
     override fun onTrafficRateLimits(upstreamBytesPerSecond: Long, downstreamBytesPerSecond: Long) {
+        // The core reports -1 for "unlimited" — that must never clobber the
+        // real measured rates from the BytesTransferred deltas.
+        if (upstreamBytesPerSecond < 0 || downstreamBytesPerSecond < 0) return
         mutate {
             it.downstreamBps = downstreamBytesPerSecond
             it.upstreamBps = upstreamBytesPerSecond
