@@ -8,6 +8,7 @@ import ca.psiphon.PsiphonTunnel
 import io.github.nayrasolcr.forough.EngineBridge
 import io.github.nayrasolcr.forough.ForoughBus
 import io.github.nayrasolcr.forough.net.NetTools
+import io.github.nayrasolcr.forough.service.ForoughVpnService
 import io.github.nayrasolcr.forough.vpn.VpnManager
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors

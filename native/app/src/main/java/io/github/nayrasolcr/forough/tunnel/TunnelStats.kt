@@ -33,12 +33,6 @@ data class TunnelStats(
     // End-to-end traffic probe: "-" | "checking" | "ok" | "failed".
     val trafficStatus: String = "-"
 ) {
-    fun copyMutable(block: (Mutable -> Unit)): TunnelStats {
-        val m = Mutable(this)
-        block(m)
-        return m.build()
-    }
-
     /** Mutable accumulator mirroring how the desktop NoticeParser mutates stats in place. */
     class Mutable(base: TunnelStats) {
         var protocol: String = base.protocol
