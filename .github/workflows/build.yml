@@ -330,6 +330,11 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+          # The legacy Psiphon app at the repo root carries an old wrapper
+          # jar that is not in Gradle's checksum database; we don't use
+          # wrappers here (Gradle is installed by this action), so
+          # validation is off.
+          validate-wrappers: false
 
       - name: Build native APK
         run: |
