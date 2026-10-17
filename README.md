@@ -38,7 +38,7 @@
 ### نصب
 
 1. به بخش [Releases](https://github.com/nayrasolcr-arch/forough-android/releases) بروید.
-2. فایل `Forough-2.0.0-android.apk` را دانلود کنید.
+2. فایل `Forough-2.0.1-android.apk` را دانلود کنید.
 3. نصب را تأیید کنید («نصب از منابع ناشناس» را برای فایل‌منیجر خود فعال کنید).
 4. اولین اتصال، مجوز VPN اندروید را می‌خواهد — تأیید کنید و دکمهٔ اتصال را بزنید.
 
@@ -86,7 +86,7 @@ gradle -p native assembleRelease
 
 ### Install
 
-1. Grab `Forough-2.0.0-android.apk` from [Releases](https://github.com/nayrasolcr-arch/forough-android/releases).
+1. Grab `Forough-2.0.1-android.apk` from [Releases](https://github.com/nayrasolcr-arch/forough-android/releases).
 2. Install it (allow "install unknown apps" for your file manager).
 3. Approve the Android VPN prompt on first connect and hit the connect button.
 

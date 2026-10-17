@@ -5,6 +5,7 @@ import android.net.VpnService
 import android.os.Handler
 import android.os.Looper
 import ca.psiphon.PsiphonTunnel
+import io.github.nayrasolcr.forough.CrashLog
 import io.github.nayrasolcr.forough.EngineBridge
 import io.github.nayrasolcr.forough.ForoughBus
 import io.github.nayrasolcr.forough.net.NetTools
@@ -472,7 +473,7 @@ class ForoughTunnelManager(
         val s = stats
         val sb = StringBuilder()
         sb.appendLine("Forough Android diagnostics ($trigger)")
-        sb.appendLine("version: 2.0.0")
+        sb.appendLine("version: 2.0.1")
         sb.appendLine("engine: psiphon-tunnel-core (Forough fork, quality-ranked CDN edges)")
         sb.appendLine("status: ${s.status}")
         sb.appendLine("protocol: ${s.tunnelProtocol}")
@@ -498,6 +499,13 @@ class ForoughTunnelManager(
             for (line in logs.takeLast(40)) {
                 sb.appendLine("  $line")
             }
+        }
+        // Last session's uncaught exception (crash journal) — the real data
+        // a user can share when something crashes on their device.
+        CrashLog.read(context)?.let { crash ->
+            sb.appendLine()
+            sb.appendLine("last crash:")
+            sb.appendLine(crash)
         }
         return sb.toString()
     }

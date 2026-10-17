@@ -20,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.github.nayrasolcr.forough.BuildConfig
 import io.github.nayrasolcr.forough.R
 
 /**
@@ -45,7 +46,7 @@ fun AboutScreen() {
         )
         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineSmall)
         Text(
-            "v2.0.0",
+            "v${BuildConfig.VERSION_NAME}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

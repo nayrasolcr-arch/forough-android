@@ -3,6 +3,7 @@ package io.github.nayrasolcr.forough.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,6 +46,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import io.github.nayrasolcr.forough.BuildConfig
+import io.github.nayrasolcr.forough.CrashLog
 import io.github.nayrasolcr.forough.EngineBridge
 import io.github.nayrasolcr.forough.ForoughBus
 import io.github.nayrasolcr.forough.R
@@ -112,21 +115,36 @@ fun ForoughApp(
                         Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.scanner_title))
                     }
                     IconButton(onClick = {
-                        val manager = EngineBridge.manager
-                        if (manager != null && manager.isRunning) {
-                            manager.runSpeedTest(manual = true)
-                            scope.launch { snackbar.showSnackbar(speedStartedText) }
-                        } else {
-                            scope.launch { snackbar.showSnackbar(speedUnavailableText) }
+                        try {
+                            val manager = EngineBridge.manager
+                            if (manager != null && manager.isRunning) {
+                                manager.runSpeedTest(manual = true)
+                                scope.launch { snackbar.showSnackbar(speedStartedText) }
+                            } else {
+                                scope.launch { snackbar.showSnackbar(speedUnavailableText) }
+                            }
+                        } catch (e: Exception) {
+                            ForoughBus.appendLog("speed test error: ${e.message}")
                         }
                     }) {
                         Icon(Icons.Outlined.Speed, contentDescription = stringResource(R.string.speed_test))
                     }
                     IconButton(onClick = {
-                        val report = EngineBridge.manager?.buildDiagnosticsReport("manual-copy")
-                            ?: "Forough Android 2.0.0 — tunnel not running"
-                        clipboard.setText(AnnotatedString(report))
-                        scope.launch { snackbar.showSnackbar(diagCopiedText) }
+                        try {
+                            val report = EngineBridge.manager?.buildDiagnosticsReport("manual-copy")
+                                ?: buildString {
+                                    appendLine("Forough Android ${BuildConfig.VERSION_NAME} — tunnel not running")
+                                    CrashLog.read(context)?.let { crash ->
+                                        appendLine()
+                                        appendLine("last crash:")
+                                        append(crash)
+                                    }
+                                }
+                            clipboard.setText(AnnotatedString(report))
+                            scope.launch { snackbar.showSnackbar(diagCopiedText) }
+                        } catch (e: Exception) {
+                            ForoughBus.appendLog("diagnostics error: ${e.message}")
+                        }
                     }) {
                         Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.diagnostics))
                     }
@@ -162,22 +180,32 @@ fun ForoughApp(
             )
         }
     ) { padding ->
+        // The shell is a NON-scrolling column: each screen owns its own scroll
+        // container. A scrollable shell would hand every screen unbounded
+        // height constraints, and any lazy list (the logs view) crashes with
+        // "Vertically scrollable component was measured with an infinity
+        // maximum height constraints" the moment it composes.
         Column(
             modifier = Modifier
                 .padding(padding)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .fillMaxSize()
                 .padding(horizontal = 12.dp)
         ) {
             when (screen) {
                 Screen.MAIN -> {
-                    ConnectionPanel(
-                        stats = stats,
-                        running = running,
-                        onConnect = onConnect,
-                        onDisconnect = onDisconnect
-                    )
-                    StatsPanel(stats = stats, running = running)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        ConnectionPanel(
+                            stats = stats,
+                            running = running,
+                            onConnect = onConnect,
+                            onDisconnect = onDisconnect
+                        )
+                        StatsPanel(stats = stats, running = running)
+                    }
                 }
                 Screen.SCANNER -> ScannerScreen(
                     store = store,
