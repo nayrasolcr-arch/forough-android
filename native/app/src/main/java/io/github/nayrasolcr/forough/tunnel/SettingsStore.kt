@@ -64,6 +64,8 @@ class SettingsStore(context: Context) {
             enableTimeout = prefs.getBoolean(KEY_TIMEOUT, false),
             enableLan = prefs.getBoolean(KEY_LAN, false),
             enableBeastMode = prefs.getBoolean(KEY_BEAST, true),
+            connectionWorkers = prefs.getInt(KEY_WORKERS, 64),
+            enableTurboNetwork = prefs.getBoolean(KEY_TURBO, true),
             inproxyCompartmentId = prefs.getString(KEY_COMPARTMENT, "") ?: "",
             cdnFrontingIpList = prefs.getString(KEY_CDN_IPS, "") ?: "",
             cdnFrontingSni = prefs.getString(KEY_CDN_SNI, "") ?: "",
@@ -112,6 +114,8 @@ class SettingsStore(context: Context) {
             .putBoolean(KEY_TIMEOUT, options.enableTimeout)
             .putBoolean(KEY_LAN, options.enableLan)
             .putBoolean(KEY_BEAST, options.enableBeastMode)
+            .putInt(KEY_WORKERS, options.connectionWorkers)
+            .putBoolean(KEY_TURBO, options.enableTurboNetwork)
             .putString(KEY_COMPARTMENT, options.inproxyCompartmentId)
             .putString(KEY_CDN_IPS, options.cdnFrontingIpList)
             .putString(KEY_CDN_SNI, options.cdnFrontingSni)
@@ -172,6 +176,8 @@ class SettingsStore(context: Context) {
         private const val KEY_TIMEOUT = "enable_timeout"
         private const val KEY_LAN = "enable_lan"
         private const val KEY_BEAST = "enable_beast_mode"
+        private const val KEY_WORKERS = "connection_workers"
+        private const val KEY_TURBO = "enable_turbo_network"
         private const val KEY_COMPARTMENT = "inproxy_compartment_id"
         private const val KEY_CDN_IPS = "cdn_fronting_ip_list"
         private const val KEY_CDN_SNI = "cdn_fronting_sni"

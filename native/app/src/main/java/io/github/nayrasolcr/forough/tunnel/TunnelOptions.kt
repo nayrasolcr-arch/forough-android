@@ -69,6 +69,15 @@ data class TunnelOptions(
     val enableTimeout: Boolean = false,
     val enableLan: Boolean = false,
     val enableBeastMode: Boolean = true,
+    // Connection worker pool — how many servers/CDN edges are dialed in
+    // parallel during establishment. 64 (the core's aggressive default)
+    // connects measurably faster than 30 on censored networks.
+    val connectionWorkers: Int = 64,
+    // Turbo network optimizations: BBR congestion control + 4 MB socket
+    // buffers + tuned keepalives applied to every dial socket (core
+    // EnableTCPOptimizations). Higher sustained throughput on lossy,
+    // high-latency mobile networks.
+    val enableTurboNetwork: Boolean = true,
     val inproxyCompartmentId: String = "",
     val cdnFrontingIpList: String = "",
     val cdnFrontingSni: String = "",

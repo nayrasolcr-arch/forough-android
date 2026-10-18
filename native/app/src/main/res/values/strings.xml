@@ -93,6 +93,10 @@
     <string name="region_any">Any</string>
     <string name="settings_beast">Beast mode</string>
     <string name="settings_beast_desc">Aggressive establishment: try all protocols on all servers</string>
+    <string name="settings_workers">Connection workers</string>
+    <string name="settings_workers_value">%1$d parallel dials</string>
+    <string name="settings_turbo">Turbo network optimizations</string>
+    <string name="settings_turbo_desc">BBR congestion control, 4 MB socket buffers and tuned keepalives on every connection — higher sustained throughput on lossy networks</string>
     <string name="settings_timeout">Enable timeout</string>
     <string name="settings_timeout_desc">Use the establish-tunnel timeout from the config</string>
     <string name="settings_lan">Share proxy on network</string>

@@ -1,11 +1,13 @@
 package io.github.nayrasolcr.forough.ui
 
 import androidx.compose.animation.core.EaseOutBack
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
@@ -267,5 +269,42 @@ fun AuroraBackground(active: Boolean, modifier: Modifier = Modifier) {
             radius = w * 0.85f,
             center = c3
         )
+
+        // Field 4 (v2.3.0) — violet, sweeping across the lower third with a
+        // faster period so the aurora never looks static; very low alpha so
+        // it reads as depth, not noise.
+        val c4 = Offset(
+            w * (0.22f + 0.24f * sin(phase * 1.21f + 3.6f)),
+            h * (0.86f + 0.05f * sin(phase * 0.47f + 5.1f))
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFF8A63D2).copy(alpha = s * 0.55f), Color.Transparent),
+                center = c4,
+                radius = w * 0.7f
+            ),
+            radius = w * 0.7f,
+            center = c4
+        )
     }
+}
+
+/**
+ * OdometerFloat — smooth numeric count animation. The displayed value
+ * glides to each new target instead of jumping, so live counters (speeds,
+ * totals) read like a physical gauge. Snaps instantly to zero so idle
+ * resets don't linger.
+ */
+@Composable
+fun odometerFloat(target: Float, label: String): Float {
+    val animated by animateFloatAsState(
+        targetValue = target,
+        animationSpec = if (target <= 0f) {
+            snap()
+        } else {
+            tween(420, easing = FastOutSlowInEasing)
+        },
+        label = label
+    )
+    return animated
 }

@@ -138,6 +138,25 @@ fun SettingsScreen(
                 options.enableBeastMode
             ) { options = options.copy(enableBeastMode = it) }
 
+            // ----- Connection workers (parallel dial pool) -----
+            val workerValues = listOf(48, 64, 96, 128)
+            DropdownRow(
+                label = stringResource(R.string.settings_workers),
+                value = stringResource(
+                    R.string.settings_workers_value,
+                    if (options.connectionWorkers in workerValues) options.connectionWorkers else 64
+                ),
+                items = workerValues.map { stringResource(R.string.settings_workers_value, it) }
+            ) { index ->
+                options = options.copy(connectionWorkers = workerValues[index])
+            }
+
+            SwitchRow(
+                stringResource(R.string.settings_turbo),
+                stringResource(R.string.settings_turbo_desc),
+                options.enableTurboNetwork
+            ) { options = options.copy(enableTurboNetwork = it) }
+
             SwitchRow(
                 stringResource(R.string.settings_timeout),
                 stringResource(R.string.settings_timeout_desc),

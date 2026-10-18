@@ -1,3 +1,25 @@
+# Forough (فروغ) 2.3.0 — Android
+
+**فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet
+
+## What's new in 2.3.0 — the "engine + 64 workers + shine" release
+
+**فارسی:**
+- **هستهٔ موتور تقویت شد (speed+)**: حالت بیست حالا با **۶۴ ورکر موازی** (بجای ۳۰) لبه‌ها و سرورها را هم‌زمان امتحان می‌کند؛ اسکن CDN با پوشش دوبرابر (fanout ۱۶) و حافظهٔ کیفیت لبه‌ها با اندازه‌گیری زمان واقعی برقراری هر مسیر، همیشه روی **سریع‌ترین لبهٔ CDN** وصل می‌شود.
+- **بهینه‌سازی توربو شبکه (BBR)**: گزینهٔ جدید «بهینه‌سازی توربو» — کنترل ازدحام BBR، بافر سوکت ۴ مگابایتی و keepalive تنظیم‌شده روی همهٔ اتصال‌های تونل؛ روی شبکه‌های پرِ‌تأخیر و پرِ‌لود (که رایج‌ترین عامل افت سرعت دانلود/آپلود است) نرخ پایدار انتقال به‌طور محسوس بالاتر می‌رود. پیش‌فرض: روشن.
+- **تنظیم ورکرهای اتصال**: در تنظیمات می‌توانید تعداد اتصال‌های موازی را بین ۴۸ تا ۱۲۸ انتخاب کنید (پیش‌فرض ۶۴).
+- **نظم polling بهینه شد**: فاصلهٔ poll حالت بیکار meek کوتاه‌تر و بازگشت از حالت بیکار سریع‌تر شد — تعامل (وب‌گردی، چت) بعد از وقفه فوری‌تر جواب می‌دهد.
+- **گرافیک و انیمیشن روان‌تر**: چهارمین میدان شفق قطبی (بنفش) برای عمق بیشتر؛ **اعداد سرعت با شمارش نرم (odometer)** به‌جای پرش بین مقادیر؛ موج نور آهسته روی حلقهٔ اتصال هنگام اتصال موفق؛ درخشش (shimmer) روی کارت‌های سرعت وقتی به اوج می‌رسند.
+
+**English:**
+- **Stronger engine (speed+)**: beast mode now dials with **64 parallel workers** (up from 30); the CDN scan covers twice as many candidates per round (fanout 16) and the edge-quality cache now measures real per-route establishment time, so reconnects always land on the **fastest measured CDN edge**.
+- **Turbo network optimizations (BBR)**: new "Turbo network optimizations" switch — BBR congestion control, 4 MB socket buffers and tuned keepalives on every tunnel dial. On lossy, high-latency mobile networks (the usual cause of low upload/download), sustained throughput rises noticeably. Default: on.
+- **Connection workers setting**: pick the parallel dial pool size from 48 to 128 in Settings (default 64).
+- **Smoother idle polling**: shorter meek idle poll interval and gentler backoff — interactive traffic (browsing, chat) resumes instantly after idle periods.
+- **Smoother graphics & motion**: a fourth aurora field (violet) for extra depth; **odometer-style smooth counting** on the speed cards; a slow light sweep riding the connection ring while connected; a shimmer highlight on speed cards at session peak.
+
+---
+
 # Forough (فروغ) 2.2.0 — Android
 
 **فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet

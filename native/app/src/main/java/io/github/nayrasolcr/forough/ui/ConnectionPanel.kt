@@ -290,6 +290,16 @@ private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifi
         ),
         label = "sweepAngle2"
     )
+    // Connected: a slow white light sweep riding the steady ring (v2.3.0).
+    val connectedSweep by sweep.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3600, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "connectedSweep"
+    )
     // Breathing glow while idle.
     val idlePulse = breathingPulse(target = 0.86f, periodMs = 1200)
     // Connected: soft luminous halo breathing.
@@ -383,6 +393,22 @@ private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifi
                 topLeft = topLeft, size = arcSize,
                 style = Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
             )
+            if (connected) {
+                // v2.3.0: slow light sweep riding on the steady ring — the
+                // session feels alive rather than parked.
+                drawArc(
+                    brush = Brush.sweepGradient(
+                        0f to Color.Transparent,
+                        0.12f to Color.White.copy(alpha = 0.55f),
+                        0.24f to Color.Transparent,
+                        1f to Color.Transparent,
+                        center = center
+                    ),
+                    startAngle = connectedSweep, sweepAngle = 90f, useCenter = false,
+                    topLeft = topLeft, size = arcSize,
+                    style = Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                )
+            }
         }
 
         // Success burst: 14 particles flying outward, fading + shrinking.
@@ -496,6 +522,22 @@ private fun SpeedCard(
         animationSpec = tween(420),
         label = "speedBar"
     )
+    // Odometer digits: the number glides to each new sample instead of
+    // stepping between formatted strings — the v2.3.0 smoothness upgrade.
+    val animatedSpeed = odometerFloat(speedBps.toFloat(), "speedOdo$label")
+    // Shimmer sweep while the gauge is near its session peak — the card
+    // visibly "burns" at full throttle.
+    val shimmer = rememberInfiniteTransition(label = "speedShimmer")
+    val shimmerPhase by shimmer.animateFloat(
+        initialValue = -0.4f,
+        targetValue = 1.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "speedShimmerPhase"
+    )
+    val shimmerActive = barFraction > 0.85f
 
     Surface(
         modifier = modifier,
@@ -517,22 +559,14 @@ private fun SpeedCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            // Digits slide up on change — the "odometer" feel.
-            AnimatedContent(
-                targetState = NetTools.humanSpeed(speedBps),
-                transitionSpec = {
-                    (fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 2 })
-                        .togetherWith(fadeOut(tween(120)) + slideOutVertically(tween(160)) { -it / 2 })
-                },
-                label = "speedValue"
-            ) { value ->
-                Text(
-                    text = value + "/s",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = color
-                )
-            }
-            // Gradient intensity bar under the digits.
+            // Odometer digits — glide between samples (see odometerFloat).
+            Text(
+                text = NetTools.humanSpeed(animatedSpeed.toLong()) + "/s",
+                style = MaterialTheme.typography.titleMedium,
+                color = color
+            )
+            // Gradient intensity bar under the digits, with a shimmer sweep
+            // once the session is running near its peak.
             Box(
                 modifier = Modifier
                     .padding(top = 6.dp)
@@ -552,6 +586,21 @@ private fun SpeedCard(
                             )
                         )
                 )
+                if (shimmerActive) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    0f to Color.Transparent,
+                                    shimmerPhase.coerceIn(0.1f, 0.9f) to
+                                        Color.White.copy(alpha = 0.55f),
+                                    1f to Color.Transparent
+                                )
+                            )
+                    )
+                }
             }
         }
     }

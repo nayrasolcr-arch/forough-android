@@ -115,6 +115,18 @@ object TunnelConfigBuilder {
         if (options.enableBeastMode) {
             root.put("AggressiveEstablishment", true)
         }
+        // Worker pool: how many candidates are dialed in parallel. The core
+        // raises the pool to at least AggressiveConnectionWorkerPoolSize (64)
+        // in beast mode; honor a user-picked higher value too.
+        if (options.connectionWorkers > 30) {
+            root.put("ConnectionWorkerPoolSize", options.connectionWorkers)
+        }
+
+        // Turbo network optimizations — BBR congestion control, 4 MB socket
+        // buffers and tuned keepalives on every dial socket (core
+        // EnableTCPOptimizations). On by default: substantially better
+        // sustained throughput on lossy, high-latency mobile networks.
+        root.put("EnableTCPOptimizations", options.enableTurboNetwork)
 
         // Protocol selection mirrors the desktop client (and the Psiphon
         // Android client it was ported from).

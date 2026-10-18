@@ -93,6 +93,10 @@
     <string name="region_any">هر جا (خودکار)</string>
     <string name="settings_beast">حالت بیست</string>
     <string name="settings_beast_desc">برقراری تهاجمی: امتحان همهٔ پروتکل‌ها روی همهٔ سرورها</string>
+    <string name="settings_workers">ورکرهای اتصال</string>
+    <string name="settings_workers_value">%1$d اتصال موازی</string>
+    <string name="settings_turbo">بهینه‌سازی توربو شبکه</string>
+    <string name="settings_turbo_desc">کنترل ازدحام BBR، بافر سوکت ۴ مگابایتی و keepalive تنظیم‌شده روی همه‌ی اتصال‌ها — سرعت پایدارتر روی شبکه‌های شلوغ</string>
     <string name="settings_timeout">فعال‌سازی زمان قطع</string>
     <string name="settings_timeout_desc">استفاده از مهلت برقراری تونل از پیکربندی</string>
     <string name="settings_lan">اشتراک‌گذاری پروکسی در شبکه</string>
