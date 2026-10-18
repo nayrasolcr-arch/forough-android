@@ -198,6 +198,29 @@ object TunnelConfigBuilder {
         )))
         root.put("MeekPayloadPaddingProbability", 0.7)
 
+        // ----------------------------------------------------------------
+        // Session persistence (v2.4.2) — the third field log showed the
+        // pattern "connects, then quickly drops": censors (Iran's DPI
+        // included) starve and kill idle or low-rate tunnel flows within
+        // seconds. The core's default SSH keepalive only fires every
+        // 1-2 minutes when idle — far too slow to keep a marginal meek
+        // path warm. Tighten the period and pad the keepalives so they
+        // also carry no fixed, fingerprintable size.
+        // ----------------------------------------------------------------
+        root.put("SSHKeepAlivePeriodMinMilliseconds", 15_000)
+        root.put("SSHKeepAlivePeriodMaxMilliseconds", 30_000)
+        root.put("SSHKeepAlivePaddingMinBytes", 32)
+        root.put("SSHKeepAlivePaddingMaxBytes", 160)
+
+        // Fingerprint hygiene (v2.4.2): the field logs showed most meek
+        // requests leaving with an EMPTY User-Agent — on Akamai/Fastly
+        // edges a UA-less request is itself an anomaly signal. Always
+        // pick a plausible browser UA, and pad the OSSH flow so its
+        // packet sizes don't form a stable profile either.
+        root.put("PickUserAgentProbability", 1.0)
+        root.put("ObfuscatedSSHMinPadding", 16)
+        root.put("ObfuscatedSSHMaxPadding", 128)
+
         // Protocol selection mirrors the desktop client (and the Psiphon
         // Android client it was ported from).
         when (options.protocol) {

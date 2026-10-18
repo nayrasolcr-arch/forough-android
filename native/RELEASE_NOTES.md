@@ -1,3 +1,25 @@
+# Forough (فروغ) 2.4.2 — Android
+
+**فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet
+
+## What's new in 2.4.2 — the "keep the tunnel alive" release
+
+Progress from your test: **the tunnel now connects** (the v2.4.1 anti-DPI layer works) — the remaining problem was that the session died quickly and the recovery loop made it worse. This release targets exactly that.
+
+**فارسی:**
+- **گرم نگه داشتن تونل (ضد قطع سریع)**: فیلترها جریان‌های کم‌ترافیک/بیکار را ظرف چند ثانیه می‌کُشند. keepalive پیش‌فرض SSH هر ۱ تا ۲ دقیقه بود — خیلی کند. حالا هر **۱۵ تا ۳۰ ثانیه** با پدینگ تصادفی (بدون اندازهٔ ثابت قابل انگشت‌نگاری) تونل را گرم نگه می‌دارد.
+- **ضد چرخش معیوب (anti-churn)**: لاگ سوم نشان داد حلقهٔ بازیابی، هسته را ۴ بار کامل خاموش/روشن می‌کرد در حالی که خود هسته هنوز در حال خودترمیمی بود. حالا: پروب ترافیک صبورتر شد (۱۲ ثانیه مهلت، ۳ تا ۵ خطای پیاپی تا ری‌استارت) و بعد از پلهٔ ۲ موتور نجات، فقط موتور نجات اجازهٔ ری‌استارت دارد — نه پروب.
+- **قطع بی‌صدا هم پیدا می‌شود**: وقتی تونل بی‌سروصدا می‌میرد، هسته پیام «قطع» نمی‌فرستد و آمار روی «connected» می‌ماند. حالا ۲ پروب ناموفق پیاپی = قطع تلقی می‌شود و موتور نجات دوباره مسلح می‌شود.
+- **بهداشت انگشت‌نگاری**: لاگ‌ها نشان داد اکثر درخواست‌های meek با **User-Agent خالی** بیرون می‌روند — روی لبه‌های آکامای/فستلی این خودش علامت مشکوک است. حالا همیشه UA مرورگر واقعی انتخاب می‌شود و جریان OSSH هم پدینگ تصادفی می‌گیرد.
+
+**English:**
+- **Keep the tunnel warm (anti quick-drop)**: censors starve idle/low-rate flows within seconds. The default SSH keepalive fired only every 1–2 minutes — now every **15–30 seconds**, with randomized padding so keepalives carry no fixed, fingerprintable size.
+- **Anti-churn recovery**: the third log showed the recovery loop fully restarting the core 4× while the core was still self-healing. The traffic probe is now patient (12s timeout, 3–5 consecutive failures before any restart) and once the Rescue Engine reaches stage 2, only the rescue ladder may restart the engine.
+- **Silent drops are now detected**: when a tunnel dies quietly the core never re-fires "connecting", so stats stayed "connected". Two consecutive failed probes now count as a drop and re-arm the Rescue Engine.
+- **Fingerprint hygiene**: most meek requests left with an **empty User-Agent** — itself an anomaly on Akamai/Fastly. A plausible browser UA is now always picked, and the OSSH flow gets randomized padding too.
+
+---
+
 # Forough (فروغ) 2.4.1 — Android
 
 **فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet

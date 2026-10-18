@@ -50,12 +50,17 @@ class ForoughTunnelManager(
     private var tunnel: PsiphonTunnel? = null
     private var options = TunnelOptions()
 
-    // Same tunables as the desktop TunnelManager.
-    private val trafficCheckFirstDelayMs = 6_000L
+    // Same tunables as the desktop TunnelManager — retuned in v2.4.2 for
+    // the field-observed churn loop: probe too fast + restart too eager
+    // tore the core down while its own establish worker was still
+    // re-dialing, producing the "connects, quickly drops, never returns"
+    // cycle. The core's self-healing gets the first chance; the probe
+    // only escalates after generous, repeated failure.
+    private val trafficCheckFirstDelayMs = 10_000L
     private val trafficCheckIntervalMs = 20_000L
-    private val trafficCheckMaxTimeMs = 8_000
-    private val trafficFailRestartThreshold = 2
-    private val trafficFailRestartThresholdAfterOk = 3
+    private val trafficCheckMaxTimeMs = 12_000
+    private val trafficFailRestartThreshold = 3
+    private val trafficFailRestartThresholdAfterOk = 5
     private val autoRestartMax = 2
     private val perfProbeDelayMs = 8_000L
 
@@ -401,11 +406,19 @@ class ForoughTunnelManager(
     /**
      * Watchdog tick: while the session runs but no tunnel has established,
      * escalate through the rescue ladder when the current stage's budget
-     * expires. Connected sessions are untouched.
+     * expires. Connected sessions are untouched — EXCEPT the
+     * connected-but-dead case (v2.4.2): the core does not re-fire
+     * onConnecting when a tunnel silently drops, so "status == connected"
+     * alone proves nothing. Two consecutive failed traffic probes
+     * (~40s of dead traffic) count as dropped and re-arm the ladder.
      */
     private fun rescueWatchdogTick() {
         if (!running || stopping) return
-        if (stats.status == "connected") return
+        val connected = stats.status == "connected"
+        if (connected) {
+            // Connected-but-dead detection (see doc above).
+            if (!(trafficEverOk && trafficFailures >= 2)) return
+        }
         if (rescueStageStartMs == 0L) rescueStageStartMs = System.currentTimeMillis()
 
         val elapsed = System.currentTimeMillis() - rescueStageStartMs
@@ -593,6 +606,13 @@ class ForoughTunnelManager(
     }
 
     override fun onConnecting() {
+        // A drop after a successful connect ("connected, then quickly
+        // dropped") is a fresh event: give the CURRENT rescue stage a full
+        // new budget before escalating further — the stage that connected
+        // once is the most likely to reconnect.
+        if (stats.status == "connected" && rescueStage > 0) {
+            rescueStageStartMs = System.currentTimeMillis()
+        }
         mutate {
             it.status = if (it.status == "connected") "reconnecting" else "connecting"
             true
@@ -741,6 +761,16 @@ class ForoughTunnelManager(
             val threshold =
                 if (trafficEverOk) trafficFailRestartThresholdAfterOk else trafficFailRestartThreshold
             mutate { it.trafficStatus = "no traffic"; true }
+            // v2.4.2 anti-churn: once the Rescue Engine has escalated, it
+            // owns recovery — a probe-triggered teardown here would kill
+            // the freshly re-established core mid self-heal (the third
+            // field log showed exactly that loop: 4 controller stops in
+            // one session). The probe keeps observing; only the rescue
+            // ladder restarts the engine from here on.
+            if (rescueStage >= 2) {
+                publish()
+                return
+            }
             if (trafficFailures >= threshold) {
                 trafficFailures = 0
                 autoRestart("probe HTTP 0 (all endpoints failed)")
