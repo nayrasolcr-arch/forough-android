@@ -93,6 +93,35 @@
     <string name="mode_cdn_hint">لبه‌های CDN رتبه‌بندی‌شده با فال‌بک خودکار به همهٔ ترنسپورت‌های دیگر اگر فرونت‌ها از کار بیفتند.</string>
     <string name="mode_extreme_hint">حداکثر مقاومت: همهٔ ترنسپورت‌ها همزمان — میک در همهٔ حالت‌ها، Shadowsocks، SSH، QUIC، اسکن CDN، کانالیوت. برای قطعی کلی و فیلترینگ شدید.</string>
     <string name="rescue_stage">مرحلهٔ نجات %1$d/%2$d</string>
+
+    <!-- v2.5.0: موتور دوم (Xray) -->
+    <string name="xray_title">سرورهای Xray</string>
+    <string name="xray_import_title">ورود سرورها</string>
+    <string name="xray_import_hint">لینک‌های vless:// vmess:// trojan:// ss:// را بچسبانید (هر خط یکی)</string>
+    <string name="xray_import_clipboard">ورود</string>
+    <string name="xray_paste">چسباندن از کلیپ‌بورد</string>
+    <string name="xray_sub_hint">آدرس اشتراک (https://…)</string>
+    <string name="xray_sub_fetch">دریافت اشتراک</string>
+    <string name="xray_servers_title">سرورها</string>
+    <string name="xray_empty">هنوز سروری نیست — لینک یا آدرس اشتراک وارد کنید. موتور خودکار جابه‌جا می‌شود و اگر همه شکست بخورند به سایفون برمی‌گردد.</string>
+    <string name="xray_options_title">گزینه‌های موتور</string>
+    <string name="xray_fragment">تکه‌تکه‌کردن دست‌دادگه TLS</string>
+    <string name="xray_fragment_desc">ClientHello را به تکه‌های کوچک می‌شکند — فیلترینگ مبتنی بر SNI را دور می‌زند (همان متودی که کاربران v2rayN در چین و ایران اجرا می‌کنند)</string>
+    <string name="xray_test">تست</string>
+    <string name="xray_delete">حذف</string>
+    <string name="settings_engine_group">موتور اتصال</string>
+    <string name="settings_engine">موتور</string>
+    <string name="engine_auto">خودکار (سایفون → Xray)</string>
+    <string name="engine_psiphon">هستهٔ سایفون</string>
+    <string name="engine_xray">هستهٔ Xray</string>
+    <string name="settings_engine_desc">خودکار: اول سایفون وصل می‌شود؛ اگر شبکه سدش کند، VPN خودکار به هستهٔ Xray می‌رود — و اگر Xray شکست بخورد برمی‌گردد.</string>
+    <string name="settings_engine_servers">مدیریت سرورهای Xray</string>
+
+    <!-- v2.5.0: صفحهٔ لاگ -->
+    <string name="logs_filter_all">همه</string>
+    <string name="logs_filter_engine">موتور</string>
+    <string name="logs_filter_errors">خطاها</string>
+    <string name="logs_clear">پاک کردن</string>
     <string name="settings_region">منطقه</string>
     <string name="region_any">هر جا (خودکار)</string>
     <string name="settings_beast">حالت بیست</string>

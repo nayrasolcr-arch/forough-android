@@ -38,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -62,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.nayrasolcr.forough.ForoughBus
 import io.github.nayrasolcr.forough.R
+import io.github.nayrasolcr.forough.net.NetCondition
 import io.github.nayrasolcr.forough.net.NetTools
 import io.github.nayrasolcr.forough.tunnel.Region
 import io.github.nayrasolcr.forough.tunnel.TunnelStats
@@ -112,6 +114,7 @@ fun ConnectionPanel(
 
     val connected = running && stats.status == "connected"
     val connecting = running && !connected
+    val netCondition by ForoughBus.netCondition.collectAsState()
 
     // Sample twice per second — smoother than the desktop's 1s cadence so
     // the speed numbers and graph feel live. Deltas are EMA-smoothed to
@@ -212,10 +215,18 @@ fun ConnectionPanel(
             modifier = Modifier.padding(horizontal = 24.dp)
         )
 
-        // ----- Rescue Engine badge (v2.4.0) — visible proof the engine is
-        // fighting when the first strategy is blocked. Gold = warm urgency.
+        // ----- Rescue Engine badge (v2.5.0 keeps it; v2.4.0 introduced it)
+        // — visible proof the engine is fighting when the first strategy is
+        // blocked. Gold = warm urgency.
         if (connecting && stats.rescueStage != "-") {
             RescueStageBadge(stats.rescueStage)
+        }
+
+        // ----- Smart network-condition chip (v2.5.0): the live verdict of
+        // the built-in censorship classifier (open / filtered / shutdown).
+        val condition = netCondition
+        if (condition != null) {
+            NetConditionChip(condition)
         }
 
         // ----- Live speed cards (appear when the session runs) -----
@@ -800,6 +811,44 @@ private fun RescueStageBadge(stage: String) {
                 text = stage,
                 style = MaterialTheme.typography.labelMedium,
                 color = ForoughGold
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------
+// Network condition chip (v2.5.0 — smart censorship classifier verdict)
+// ---------------------------------------------------------------------
+
+@Composable
+private fun NetConditionChip(condition: NetCondition) {
+    val (label, color) = when (condition.label) {
+        NetCondition.LABEL_OPEN -> "OPEN" to GradEmerald
+        NetCondition.LABEL_FILTERED -> "FILTERED" to ForoughGold
+        else -> "SHUTDOWN" to GradRose
+    }
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(color, CircleShape)
+            )
+            Spacer(Modifier.size(6.dp))
+            Text(
+                text = label + when (condition.label) {
+                    NetCondition.LABEL_OPEN -> " · ${condition.directTcpMs}ms"
+                    NetCondition.LABEL_FILTERED -> " · tcp ${condition.directTcpMs}ms"
+                    else -> ""
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = color
             )
         }
     }

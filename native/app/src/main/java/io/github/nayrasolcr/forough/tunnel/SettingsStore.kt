@@ -54,6 +54,37 @@ class SettingsStore(context: Context) {
             .putString(KEY_SPLIT_PACKAGES, JSONArray(value).toString())
             .apply()
 
+    // ------------------------------------------------------------------
+    // Second engine (v2.5.0) — Xray
+    // ------------------------------------------------------------------
+
+    /** "auto" | "psiphon" | "xray" — which engine carries the VPN. */
+    var engineMode: String
+        get() = prefs.getString(KEY_ENGINE_MODE, "auto") ?: "auto"
+        set(value) = prefs.edit().putString(KEY_ENGINE_MODE, value).apply()
+
+    /** Xray server share links (vless/vmess/trojan/ss) — one per line, JSON array. */
+    var xrayServerLinks: List<String>
+        get() = try {
+            val arr = JSONArray(prefs.getString(KEY_XRAY_SERVERS, "[]") ?: "[]")
+            (0 until arr.length()).map { arr.getString(it) }
+        } catch (_: Exception) {
+            emptyList()
+        }
+        set(value) = prefs.edit()
+            .putString(KEY_XRAY_SERVERS, JSONArray(value.distinct()).toString())
+            .apply()
+
+    /** Index of the Xray server that should dial first. */
+    var xrayActiveIndex: Int
+        get() = prefs.getInt(KEY_XRAY_ACTIVE, 0)
+        set(value) = prefs.edit().putInt(KEY_XRAY_ACTIVE, value).apply()
+
+    /** Fragment the TLS ClientHello on Xray TLS/REALITY dials (anti-DPI). */
+    var xrayFragmentTls: Boolean
+        get() = prefs.getBoolean(KEY_XRAY_FRAGMENT, true)
+        set(value) = prefs.edit().putBoolean(KEY_XRAY_FRAGMENT, value).apply()
+
     fun load(): TunnelOptions {
         migrateCdnDefault()
         migrateAutoSpeedDefault()
@@ -186,6 +217,10 @@ class SettingsStore(context: Context) {
         private const val KEY_HAPTICS = "haptics_enabled"
         private const val KEY_SPLIT_MODE = "split_tunnel_mode"
         private const val KEY_SPLIT_PACKAGES = "split_tunnel_packages"
+        private const val KEY_ENGINE_MODE = "engine_mode"
+        private const val KEY_XRAY_SERVERS = "xray_server_links"
+        private const val KEY_XRAY_ACTIVE = "xray_active_index"
+        private const val KEY_XRAY_FRAGMENT = "xray_fragment_tls"
         private const val KEY_SCAN_CF = "scan_cloudflare"
         private const val KEY_SCAN_FASTLY = "scan_fastly"
         private const val KEY_SCAN_AKAMAI = "scan_akamai"

@@ -67,7 +67,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 private enum class Screen(val depth: Int) {
-    MAIN(0), SCANNER(1), SETTINGS(1), LOGS(1), ABOUT(1), SHARE(1), APPS(2)
+    MAIN(0), SCANNER(1), SETTINGS(1), LOGS(1), ABOUT(1), SHARE(1), APPS(2), XRAY(2)
 }
 
 /**
@@ -188,6 +188,7 @@ fun ForoughApp(
         Screen.ABOUT -> stringResource(R.string.about)
         Screen.SHARE -> stringResource(R.string.share_title)
         Screen.APPS -> stringResource(R.string.apps_title)
+        Screen.XRAY -> stringResource(R.string.xray_title)
     }
 
     Scaffold(
@@ -358,7 +359,8 @@ fun ForoughApp(
                         onLanguageChanged = onLanguageChanged,
                         onBatteryHelper = onBatteryHelper,
                         onOpenApps = { screen = Screen.APPS },
-                        onOpenShare = { screen = Screen.SHARE }
+                        onOpenShare = { screen = Screen.SHARE },
+                        onOpenXray = { screen = Screen.XRAY }
                     )
                     Screen.SHARE -> ShareScreen(
                         store = store,
@@ -368,6 +370,10 @@ fun ForoughApp(
                         store = store,
                         onToast = { message -> ForoughBus.setToast(message) },
                         onBack = { screen = Screen.SETTINGS }
+                    )
+                    Screen.XRAY -> XrayScreen(
+                        store = store,
+                        onToast = { message -> ForoughBus.setToast(message) }
                     )
                     Screen.LOGS -> LogsScreen()
                     Screen.ABOUT -> AboutScreen()

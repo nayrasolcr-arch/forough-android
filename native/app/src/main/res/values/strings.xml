@@ -93,6 +93,35 @@
     <string name="mode_cdn_hint">Quality-ranked CDN edges with automatic fallback to every other transport if the fronts die.</string>
     <string name="mode_extreme_hint">Maximum resistance: every transport at once — meek in all forms, Shadowsocks, SSH, QUIC, CDN scan, conduit. For total shutdowns and extreme filtering.</string>
     <string name="rescue_stage">Rescue stage %1$d/%2$d</string>
+
+    <!-- v2.5.0: second engine (Xray) -->
+    <string name="xray_title">Xray servers</string>
+    <string name="xray_import_title">Import servers</string>
+    <string name="xray_import_hint">Paste vless:// vmess:// trojan:// ss:// links (one per line)</string>
+    <string name="xray_import_clipboard">Import</string>
+    <string name="xray_paste">Paste from clipboard</string>
+    <string name="xray_sub_hint">Subscription URL (https://…)</string>
+    <string name="xray_sub_fetch">Fetch subscription</string>
+    <string name="xray_servers_title">Servers</string>
+    <string name="xray_empty">No servers yet — import links or a subscription URL. The engine rotates automatically and hands back to Psiphon if all fail.</string>
+    <string name="xray_options_title">Engine options</string>
+    <string name="xray_fragment">Fragment TLS handshake</string>
+    <string name="xray_fragment_desc">Splits the ClientHello into small chunks — defeats SNI-based blocking (the method v2rayN users run in China and Iran)</string>
+    <string name="xray_test">Test</string>
+    <string name="xray_delete">Delete</string>
+    <string name="settings_engine_group">Connection engine</string>
+    <string name="settings_engine">Engine</string>
+    <string name="engine_auto">Auto (Psiphon → Xray)</string>
+    <string name="engine_psiphon">Psiphon core</string>
+    <string name="engine_xray">Xray core</string>
+    <string name="settings_engine_desc">Auto: Psiphon connects first; if the network blocks it, the VPN switches to the Xray core automatically — and back if Xray fails.</string>
+    <string name="settings_engine_servers">Manage Xray servers</string>
+
+    <!-- v2.5.0: logs screen -->
+    <string name="logs_filter_all">All</string>
+    <string name="logs_filter_engine">Engine</string>
+    <string name="logs_filter_errors">Errors</string>
+    <string name="logs_clear">Clear</string>
     <string name="settings_region">Region</string>
     <string name="region_any">Any</string>
     <string name="settings_beast">Beast mode</string>

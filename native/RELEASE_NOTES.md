@@ -1,3 +1,28 @@
+# Forough (فروغ) 2.5.0 — Android
+
+**فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet
+
+## What's new in 2.5.0 — the "second engine" release
+
+**فارسی:**
+- **موتور دوم: هستهٔ واقعی Xray**: فروغ دیگر فقط سایفون نیست — هستهٔ رسمی Xray (همان هستهٔ v2rayNG/v2rayN) داخل APK باندل می‌شود و می‌تواند کل VPN را حمل کند. پشتیبانی کامل از **VLESS (+REALITY و XTLS Vision)، VMess، Trojan، Shadowsocks** و ترنسپورت‌های TCP/WS/gRPC/HTTPUpgrade.
+- **مدیریت سرور و اشتراک**: صفحهٔ جدید «سرورهای Xray» — لینک‌های اشتراک‌گذاری (vless:// vmess:// trojan:// ss://) را از کلیپ‌بورد وارد کنید یا **آدرس Subscription** بدهید تا خودکار دریافت و پارس شود؛ تست تأخیر هر سرور، انتخاب سرور اصلی، حذف.
+- **مدیریت خودکار همه‌چیز**: در حالت «خودکار» اول سایفون وصل می‌شود؛ اگر موتور نجات به پلهٔ ۲ رسید و جواب نگرفت، VPN **خودکار به هستهٔ Xray** می‌رود، سرورها را خودکار می‌چرخاند (هر سرور ۱۵ ثانیه یک‌بار health-probe می‌شود) و اگر همه شکست بخورند خودکار به سایفون (حالت اکسترم) برمی‌گردد. هیچ دست‌زدنی لازم نیست.
+- **تکه‌تکه‌کردن TLS (متود چینی‌ها)**: خروجی‌های TLS/REALITY در Xray به‌طور پیش‌فرض از dialer تکه‌تکه‌کننده (fragment: tlshello، ۱۰۰-۲۰۰ بایت، ۱۰-۲۰ms) رد می‌شوند — همان متودی که کاربران چینی v2rayN اجرا می‌کنند.
+- **تشخیص هوشمند شرایط اینترنت**: هنگام اتصال، شبکه به‌سرعت دسته‌بندی می‌شود — OPEN / FILTERED / SHUTDOWN (تست TCP مستقیم + HTTP بین‌المللی) — چیپ رنگی روی صفحهٔ اصلی نشان می‌دهد و انتخاب موتور را هدایت می‌کند.
+- **صفحهٔ لاگ بازطراحی شد**: هر خط با برچسب رنگی سطح (OK/WRN/ERR)، فیلترهای «همه/موتور/خطاها»، دکمهٔ پاک‌کردن، و جمع‌کردن زنجیره‌های خطای طولانی.
+- **ابزارها**: تست تأخیر TCP هر سرور، تشخیص شرایط شبکه، دیاگنوستیک کامل — همه داخل اپ.
+
+**English:**
+- **Second engine: a REAL Xray core**: Forough is no longer Psiphon-only — the official Xray core (the v2rayNG/v2rayN engine) ships inside the APK and can carry the whole VPN. Full **VLESS (+REALITY, XTLS Vision), VMess, Trojan, Shadowsocks** support over tcp/ws/grpc/httpupgrade.
+- **Server & subscription management**: a new "Xray servers" screen — paste share links from the clipboard or give a **subscription URL** (fetched and parsed automatically); per-server latency test, first-dial selection, delete.
+- **Everything managed automatically**: in "Auto" mode Psiphon connects first; if the rescue ladder reaches stage 2 without success, the VPN **switches to the Xray core automatically**, rotates servers on health-probe failures (every 15s), and hands back to Psiphon (EXTREME) if all servers fail. Zero manual work.
+- **TLS fragmentation (the Chinese method)**: Xray TLS/REALITY outbounds dial through a fragment dialer by default (tlshello, 100-200 byte chunks, 10-20ms gaps) — exactly what Chinese v2rayN users run.
+- **Smart internet-condition detection**: on every connect the network is classified — OPEN / FILTERED / SHUTDOWN (direct TCP + international HTTP probes) — shown as a colored chip on the main panel and steering engine choice.
+- **Log screen redesigned**: per-line severity tags (OK/WRN/ERR), All/Engine/Errors filters, clear button, and long error chains collapsed to their meaningful tail.
+
+---
+
 # Forough (فروغ) 2.4.2 — Android
 
 **فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet

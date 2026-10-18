@@ -336,6 +336,20 @@ jobs:
           # validation is off.
           validate-wrappers: false
 
+      - name: Bundle the Xray core binary (second engine)
+        run: |
+          # v2.5.0 second engine: the official Xray-android binary becomes
+          # libxray.so inside jniLibs so Android packs and extracts it to
+          # nativeLibraryDir (the one location exec is still allowed from).
+          # Pinned release; arm64-v8a covers effectively all modern devices.
+          mkdir -p native/app/src/main/jniLibs/arm64-v8a
+          curl -sSL --retry 3 -o /tmp/xray.zip \
+            "https://github.com/XTLS/Xray-core/releases/download/v26.3.27/Xray-android-arm64-v8a.zip"
+          unzip -o /tmp/xray.zip -d /tmp/xraybin
+          mv /tmp/xraybin/xray native/app/src/main/jniLibs/arm64-v8a/libxray.so
+          chmod +x native/app/src/main/jniLibs/arm64-v8a/libxray.so
+          ls -la native/app/src/main/jniLibs/arm64-v8a/
+
       - name: Build native APK
         run: |
           gradle -p native assembleRelease --no-daemon --stacktrace
@@ -373,8 +387,8 @@ jobs:
 
       - name: Prepare release assets
         run: |
-          mv app-release.apk Forough-2.4.2-android.apk
-          SHA256=$(sha256sum "Forough-2.4.2-android.apk" | cut -d' ' -f1)
+          mv app-release.apk Forough-2.5.0-android.apk
+          SHA256=$(sha256sum "Forough-2.5.0-android.apk" | cut -d' ' -f1)
           {
             cat native/RELEASE_NOTES.md
             echo
@@ -389,11 +403,11 @@ jobs:
       - name: Create release
         run: |
           # Idempotent: recreate the version tag/release on re-runs.
-          gh release delete "v2.4.2" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "v2.4.2" \
-            "Forough-2.4.2-android.apk" \
+          gh release delete "v2.5.0" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "v2.5.0" \
+            "Forough-2.5.0-android.apk" \
             --repo "${{ github.repository }}" \
-            --title "Forough (فروغ) 2.4.2 — Android" \
+            --title "Forough (فروغ) 2.5.0 — Android" \
             --notes-file release-notes.md \
             --latest
         env:

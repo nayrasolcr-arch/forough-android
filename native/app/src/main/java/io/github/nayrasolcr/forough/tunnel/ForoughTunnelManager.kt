@@ -8,6 +8,10 @@ import ca.psiphon.PsiphonTunnel
 import io.github.nayrasolcr.forough.CrashLog
 import io.github.nayrasolcr.forough.EngineBridge
 import io.github.nayrasolcr.forough.ForoughBus
+import io.github.nayrasolcr.forough.engine.XrayEngine
+import io.github.nayrasolcr.forough.engine.XrayServer
+import io.github.nayrasolcr.forough.engine.XrayShareLink
+import io.github.nayrasolcr.forough.net.NetCondition
 import io.github.nayrasolcr.forough.net.NetTools
 import io.github.nayrasolcr.forough.service.ForoughVpnService
 import io.github.nayrasolcr.forough.vpn.VpnManager
@@ -46,6 +50,38 @@ class ForoughTunnelManager(
     }
     private val vpnManager = VpnManager.getInstance()
     private val parserState = NoticeParser.ParserState()
+
+    // ------------------------------------------------------------------
+    // Multi-engine orchestration (v2.5.0) — Psiphon is no longer the only
+    // core. A REAL Xray engine (bundled core binary) can carry the VPN:
+    //   engineMode "psiphon" — today's behavior, rescue ladder included
+    //   engineMode "xray"    — the Xray core only (VLESS/VMess/Trojan/SS)
+    //   engineMode "auto"    — Psiphon first; when the rescue ladder
+    //                          reaches stage 2 without a tunnel AND Xray
+    //                          servers are configured, the VPN switches to
+    //                          Xray automatically; if Xray exhausts its
+    //                          servers it hands back to the Psiphon ladder.
+    // A smart NetCondition probe classifies the network (open / filtered /
+    // shutdown) at start and the result steers the choice + the UI chip.
+    // ------------------------------------------------------------------
+    private val store = io.github.nayrasolcr.forough.tunnel.SettingsStore(context)
+    val xrayEngine = XrayEngine(context)
+    @Volatile var engineActive = "psiphon"
+        private set
+
+    private val xrayListener = object : XrayEngine.Listener {
+        override fun onEngineState(state: String, server: XrayServer?) {
+            ForoughBus.publishEngineState(state, server)
+            when (state) {
+                "online" -> onXrayOnline(server)
+                "exhausted" -> onXrayExhausted()
+            }
+        }
+
+        override fun onServersExhausted() {
+            onXrayExhausted()
+        }
+    }
 
     private var tunnel: PsiphonTunnel? = null
     private var options = TunnelOptions()
@@ -121,6 +157,7 @@ class ForoughTunnelManager(
 
     init {
         EngineBridge.manager = this
+        xrayEngine.listener = xrayListener
     }
 
     // ------------------------------------------------------------------
@@ -159,6 +196,26 @@ class ForoughTunnelManager(
         ForoughBus.publishRunning(true)
         appendLog("connecting — Forough Android (engine: psiphon-tunnel-core)")
         appendLog("rescue engine armed — auto-escalation if the network blocks this mode")
+
+        // Smart condition detection (v2.5.0): classify the censorship
+        // environment before dialing — the result lands in the log, the UI
+        // chip, and the auto-engine decision.
+        executor.execute {
+            val condition = NetCondition.diagnose()
+            ForoughBus.publishNetCondition(condition)
+            appendLog("network condition: " + with(NetCondition.Companion) { condition.summary() })
+        }
+
+        // Second engine (v2.5.0): honor the engine selection.
+        val mode = store.engineMode
+        engineActive = if (mode == "xray") "xray" else "psiphon"
+        if (engineActive == "xray") {
+            appendLog("engine mode: xray — starting the Xray core")
+            // The Xray engine self-manages (rotation + exhaustion fallback
+            // to Psiphon), so the Psiphon rescue watchdog stays disarmed.
+            startXrayCarrier()
+            return
+        }
 
         scheduleRescueWatchdog()
 
@@ -278,6 +335,10 @@ class ForoughTunnelManager(
      */
     private fun teardownHeavy() {
         try {
+            xrayEngine.stop()
+        } catch (_: Exception) {
+        }
+        try {
             vpnManager.stopRouteThroughTunnel()
         } catch (_: Exception) {
         }
@@ -289,6 +350,8 @@ class ForoughTunnelManager(
             vpnManager.vpnTeardown()
         } catch (_: Exception) {
         }
+        engineActive = "psiphon"
+        ForoughBus.publishEngineState("", null)
     }
 
     @Synchronized
@@ -432,6 +495,18 @@ class ForoughTunnelManager(
             rescueStageStartMs = System.currentTimeMillis()
             return
         }
+
+        // v2.5.0 hybrid engines: when the Psiphon ladder reaches stage 2 in
+        // AUTO mode and the user configured Xray servers, hand the VPN to
+        // the Xray core INSTEAD of escalating the Psiphon pool further.
+        // A different core on different infrastructure is the strongest
+        // possible "stage 2".
+        if (rescueStage == 1 && store.engineMode == "auto" &&
+            store.xrayServerLinks.isNotEmpty() && xrayEngine.available()) {
+            switchToXray(reason = "psiphon blocked — switching to the xray engine")
+            return
+        }
+
         escalateRescue()
     }
 
@@ -518,6 +593,144 @@ class ForoughTunnelManager(
     private fun stageBadge(stage: Int, note: String): String = "$stage/$rescueMaxStage — $note"
 
     // ------------------------------------------------------------------
+    // Xray engine carrier (v2.5.0)
+    // ------------------------------------------------------------------
+
+    /** The SOCKS port the VPN should route through for the active engine. */
+    private fun activeSocksPort(): Int =
+        if (engineActive == "xray") XrayConfigBuilder.SOCKS_PORT else 1081
+
+    private fun activeHttpPort(): Int =
+        if (engineActive == "xray") XrayConfigBuilder.HTTP_PORT else 8081
+
+    /** Bring the VPN up under the Xray engine (xray-only or hybrid switch). */
+    private fun startXrayCarrier() {
+        val links = store.xrayServerLinks
+        val servers = links.mapNotNull { XrayShareLink.parse(it) }
+        if (servers.isEmpty()) {
+            appendLog("xray engine: no servers configured — falling back to psiphon")
+            engineActive = "psiphon"
+            startPsiphonCore()
+            return
+        }
+        xrayEngine.fragmentTls = store.xrayFragmentTls
+        engineActive = "xray"
+        lifecycleExecutor.execute {
+            if (!running || stopping) return@lifecycleExecutor
+            try {
+                vpnManager.registerHostService(builderProvider)
+                vpnManager.setShareProxyOnNetwork(options.enableLan)
+                vpnManager.setSplitTunnelFilter(options.splitTunnelMode, options.splitTunnelPackages)
+                vpnManager.vpnEstablish()
+            } catch (e: Exception) {
+                appendLog("vpn establish failed: ${e.message}")
+                return@lifecycleExecutor
+            }
+            val started = xrayEngine.start(
+                servers,
+                store.xrayActiveIndex.coerceIn(0, servers.size - 1)
+            )
+            if (!started) {
+                appendLog("xray engine failed to start — falling back to psiphon")
+                engineActive = "psiphon"
+                startPsiphonCore()
+            }
+        }
+    }
+
+    /** Start (or restart) the Psiphon core in-place, keeping the VPN up. */
+    private fun startPsiphonCore() {
+        lifecycleExecutor.execute {
+            if (!running || stopping) return@lifecycleExecutor
+            try {
+                vpnManager.stopRouteThroughTunnel()
+                tunnel?.stop()
+            } catch (_: Exception) {
+            }
+            try {
+                vpnManager.registerHostService(builderProvider)
+                vpnManager.vpnEstablish()
+                val newTunnel = PsiphonTunnel.newPsiphonTunnel(this)
+                mainHandler.post { tunnel = newTunnel }
+                newTunnel.setVpnMode(true)
+                newTunnel.startTunneling("")
+                appendLog("psiphon core restarted (engine: psiphon)")
+            } catch (e: Exception) {
+                appendLog("psiphon core restart failed: ${e.message}")
+            }
+        }
+    }
+
+    /** Hybrid switch: hand the whole VPN from Psiphon to the Xray core. */
+    private fun switchToXray(reason: String) {
+        if (engineActive == "xray") return
+        appendLog("engine switch: $reason")
+        ForoughBus.setToast("switching engine: xray")
+        mutate {
+            it.status = "reconnecting"
+            it.trafficStatus = "engine: xray…"
+            it.rescueStage = "engine switch — xray"
+            true
+        }
+        publish()
+        lifecycleExecutor.execute {
+            if (!running || stopping) return@lifecycleExecutor
+            try {
+                vpnManager.stopRouteThroughTunnel()
+                tunnel?.stop()
+            } catch (_: Exception) {
+            }
+            engineActive = "xray"
+            startXrayCarrier()
+        }
+    }
+
+    private fun onXrayOnline(server: XrayServer?) {
+        if (!running || stopping || engineActive != "xray") return
+        appendLog("xray engine online — routing whole-device traffic through it")
+        executor.execute {
+            try {
+                vpnManager.routeThroughTunnel(XrayConfigBuilder.SOCKS_PORT)
+            } catch (e: Exception) {
+                appendLog("xray routing failed: ${e.message}")
+            }
+        }
+        mutate {
+            it.status = "connected"
+            it.tunnelCount = 1
+            it.publicIp = "-"
+            it.rescueStage = "-"
+            it.tunnelProtocol = server?.let { s -> "xray/${s.protocolLabel}" } ?: "xray"
+            if (it.connectedAtMs == 0L) it.connectedAtMs = System.currentTimeMillis()
+            true
+        }
+        publish()
+        scheduleTrafficCheck()
+        schedulePerfProbe()
+        fetchPublicIp()
+    }
+
+    private fun onXrayExhausted() {
+        if (!running || stopping || engineActive != "xray") return
+        appendLog("xray engine exhausted — handing the VPN back to the psiphon core")
+        ForoughBus.setToast("xray servers failed — back to psiphon")
+        engineActive = "psiphon"
+        // Land mid-ladder: the next watchdog escalation runs stage 3
+        // (EXTREME, region released) — the strongest Psiphon configuration.
+        rescueStage = 2
+        rescueStageStartMs = System.currentTimeMillis()
+        mutate {
+            it.status = "reconnecting"
+            it.rescueStage = "engine switch — psiphon (extreme)"
+            true
+        }
+        publish()
+        options = options.copy(protocol = ProtocolMode.EXTREME, tcpOnlyOverride = false, region = "")
+        scheduleRescueWatchdog()
+        startPsiphonCore()
+    }
+
+    // ------------------------------------------------------------------
     // PsiphonTunnel.HostService
     // ------------------------------------------------------------------
 
@@ -590,8 +803,13 @@ class ForoughTunnelManager(
     override fun onListeningSocksProxyPort(port: Int) {
         // Start whole-device routing as soon as the core's SOCKS listener is
         // up, so traffic flows the moment the tunnel establishes (and on
-        // every automatic reconnect).
+        // every automatic reconnect). Never route the Psiphon port when the
+        // Xray engine owns the VPN (v2.5.0).
         appendLog("SOCKS proxy listening on 127.0.0.1:$port")
+        if (engineActive != "psiphon") {
+            appendLog("routing skipped — xray engine owns the VPN routing")
+            return
+        }
         executor.execute {
             try {
                 vpnManager.routeThroughTunnel(port)
@@ -740,7 +958,7 @@ class ForoughTunnelManager(
         publish()
 
         executor.execute {
-            val code = NetTools.probeTraffic(8081, trafficCheckMaxTimeMs)
+            val code = NetTools.probeTraffic(activeHttpPort(), trafficCheckMaxTimeMs)
             mainHandler.post { trafficCheckDone(code) }
         }
     }
@@ -808,8 +1026,8 @@ class ForoughTunnelManager(
         perfProbeInFlight = true
         appendLog(if (manual) "speed test running — numbers land in the log and diagnostics" else "performance probe running")
         executor.execute {
-            val ttfb = NetTools.probeTtfb()
-            val speed = NetTools.probeSpeed()
+            val ttfb = NetTools.probeTtfb(proxyPort = activeHttpPort())
+            val speed = NetTools.probeSpeed(proxyPort = activeHttpPort())
             perfProbeInFlight = false
             if (!perfProbeDone) perfProbeDone = true
             lastPerfReport = ttfb.report() + "\n" + speed.report()
@@ -829,7 +1047,7 @@ class ForoughTunnelManager(
     fun fetchPublicIp() {
         if (stats.status != "connected") return
         executor.execute {
-            val result = NetTools.fetchPublicIp()
+            val result = NetTools.fetchPublicIp(proxyPort = activeHttpPort())
             if (result != null) {
                 mutate {
                     it.publicIp = result.first

@@ -52,7 +52,8 @@ fun SettingsScreen(
     onLanguageChanged: () -> Unit,
     onBatteryHelper: () -> Unit,
     onOpenApps: () -> Unit,
-    onOpenShare: () -> Unit
+    onOpenShare: () -> Unit,
+    onOpenXray: () -> Unit
 ) {
     var options by remember { mutableStateOf(store.load()) }
     var autoConnect by remember { mutableStateOf(store.autoConnect) }
@@ -324,6 +325,43 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                 modifier = Modifier.padding(top = 4.dp)
             )
+        }
+
+        // ===================== Second engine (v2.5.0) =====================
+        SectionCard(
+            title = stringResource(R.string.settings_engine_group),
+            glyph = { BoltIcon(22.dp) }
+        ) {
+            val engineModes = listOf(
+                stringResource(R.string.engine_auto),
+                stringResource(R.string.engine_psiphon),
+                stringResource(R.string.engine_xray)
+            )
+            val currentMode = when (store.engineMode) {
+                "xray" -> 2
+                "psiphon" -> 1
+                else -> 0
+            }
+            DropdownRow(
+                label = stringResource(R.string.settings_engine),
+                value = engineModes[currentMode],
+                items = engineModes
+            ) { index ->
+                store.engineMode = when (index) {
+                    2 -> "xray"
+                    1 -> "psiphon"
+                    else -> "auto"
+                }
+            }
+            Text(
+                stringResource(R.string.settings_engine_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Button(onClick = onOpenXray) {
+                Text(stringResource(R.string.settings_engine_servers))
+            }
         }
 
         // ===================== CDN fronting =====================
