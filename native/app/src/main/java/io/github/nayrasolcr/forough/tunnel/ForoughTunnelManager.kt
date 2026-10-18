@@ -8,6 +8,7 @@ import ca.psiphon.PsiphonTunnel
 import io.github.nayrasolcr.forough.CrashLog
 import io.github.nayrasolcr.forough.EngineBridge
 import io.github.nayrasolcr.forough.ForoughBus
+import io.github.nayrasolcr.forough.engine.XrayConfigBuilder
 import io.github.nayrasolcr.forough.engine.XrayEngine
 import io.github.nayrasolcr.forough.engine.XrayServer
 import io.github.nayrasolcr.forough.engine.XrayShareLink
