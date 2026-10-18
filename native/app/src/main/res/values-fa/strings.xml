@@ -70,6 +70,13 @@
     <string name="scanner_edges_applied_fmt">%1$d لبه اعمال شد — برای استفاده دوباره وصل شوید</string>
     <string name="scanner_select_needed">حداقل یک لبه انتخاب کنید</string>
     <string name="scanner_no_results">هنوز نتیجه‌ای نیست — اسکن را شروع کنید</string>
+    <string name="scanner_dead">بدون پاسخ</string>
+    <string name="scanner_probed">بررسی‌شده</string>
+    <string name="scanner_use_connect">استفاده و اتصال</string>
+    <string name="scanner_select_fastest">۱۲ تای سریع‌تر</string>
+    <string name="scanner_more_fmt">…و %1$d لبهٔ سریع دیگر</string>
+    <string name="scanner_edges_connected_fmt">سریع‌ترین %1$d لبه اعمال شد — در حال اتصال…</string>
+    <string name="scanner_already_connected">هم‌اکنون متصل هستید — اول قطع کنید، بعد دوباره اعمال کنید</string>
     <string name="scan_stopped">اسکن متوقف شد</string>
     <string name="tls_failed">TLS ناموفق</string>
 
@@ -88,8 +95,8 @@
     <string name="settings_beast_desc">برقراری تهاجمی: امتحان همهٔ پروتکل‌ها روی همهٔ سرورها</string>
     <string name="settings_timeout">فعال‌سازی زمان قطع</string>
     <string name="settings_timeout_desc">استفاده از مهلت برقراری تونل از پیکربندی</string>
-    <string name="settings_lan">فعال‌سازی اشتراک LAN</string>
-    <string name="settings_lan_desc">زیرشبکه‌های محلی بیرون از VPN می‌مانند تا دستگاه‌های دیگر به پروکسی برسند</string>
+    <string name="settings_lan">اشتراک‌گذاری پروکسی در شبکه</string>
+    <string name="settings_lan_desc">پروکسی HTTP/SOCKS روی وای‌فای و هات‌اسپات در دسترس بقیهٔ دستگاه‌ها می‌شود</string>
     <string name="settings_upstream">پروکسی بالادستی</string>
     <string name="settings_upstream_hint">نشانی http، https یا socks5 (اختیاری)</string>
     <string name="settings_compartment">شناسهٔ بخش شخصی کانالیوت</string>
@@ -138,6 +145,26 @@
     <string name="settings_save">ذخیره</string>
     <string name="settings_saved">تنظیمات ذخیره شد</string>
     <string name="settings_note">تغییرات اتصال در اتصال بعدی اعمال می‌شوند. تغییر زبان و ظاهر بلافاصله اعمال می‌شود.</string>
+
+    <!-- اشتراک‌گذاری پروکسی -->
+    <string name="share_title">اشتراک‌گذاری پروکسی</string>
+    <string name="share_toggle">اشتراک‌گذاری پروکسی این تونل</string>
+    <string name="share_toggle_desc">پروکسی‌های HTTP/SOCKS روی کل شبکه (وای‌فای + هات‌اسپات) بسته می‌شوند و ترافیک LAN از VPN بیرون می‌ماند</string>
+    <string name="share_endpoints">آدرس پروکسی برای دستگاه‌های دیگر</string>
+    <string name="share_no_network">هیچ آدرس شبکهٔ محلی پیدا نشد — به وای‌فای وصل شوید یا هات‌اسپات را روشن کنید و برگردید.</string>
+    <string name="share_all_addresses">همهٔ آدرس‌های در دسترس:</string>
+    <string name="share_disabled_body">اشتراک‌گذاری را روشن کنید تا آدرس پروکسی برای دستگاه‌های دیگر نمایش داده شود. تغییر در اتصال بعدی اعمال می‌شود.</string>
+    <string name="share_howto_title">روش استفاده</string>
+    <string name="share_howto_1">۱. اشتراک‌گذاری را در بالا روشن کنید و فروغ را وصل کنید.</string>
+    <string name="share_howto_2">۲. در دستگاه دیگر، تنظیمات پروکسی را باز کنید و آدرس HTTP پروکسی نمایش‌داده‌شده را وارد کنید (یا QR را اسکن کنید).</string>
+    <string name="share_howto_3">۳. ترافیک دستگاه دیگر حالا از تونل فروغِ همین گوشی عبور می‌کند — هم روی وای‌فای کار می‌کند هم هات‌اسپات.</string>
+    <string name="share_warning">فقط با افراد مورد اعتماد به اشتراک بگذارید: همهٔ ترافیک آن‌ها از تونل و اینترنت شما عبور می‌کند.</string>
+    <string name="share_copy">کپی</string>
+    <string name="share_copied">آدرس کپی شد</string>
+    <string name="share_applies_next_connect">اشتراک‌گذاری روشن است — در اتصال بعدی اعمال می‌شود</string>
+    <string name="share_off_hint">اشتراک‌گذاری خاموش است — دستگاه‌های دیگر به پروکسی دسترسی ندارند</string>
+    <string name="share_open">اشتراک‌گذاری پروکسی…</string>
+    <string name="share_open_desc">آدرس‌ها، QR کد و مراحل اشتراک‌گذاری این تونل روی وای‌فای/هات‌اسپات</string>
 
     <!-- لاگ / درباره / ابزارها -->
     <string name="logs_title">لاگ‌های تونل</string>

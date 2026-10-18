@@ -28,6 +28,15 @@ class SettingsStore(context: Context) {
         get() = prefs.getBoolean(KEY_HAPTICS, true)
         set(value) = prefs.edit().putBoolean(KEY_HAPTICS, value).apply()
 
+    /**
+     * Proxy sharing (LAN / hotspot) quick access — mirrors
+     * TunnelOptions.enableLan so screens can flip it without round-tripping
+     * a full options save.
+     */
+    var enableLan: Boolean
+        get() = prefs.getBoolean(KEY_LAN, false)
+        set(value) = prefs.edit().putBoolean(KEY_LAN, value).apply()
+
     /** Split tunneling: "off" | "allow" | "exclude" (power feature). */
     var splitTunnelMode: String
         get() = prefs.getString(KEY_SPLIT_MODE, SPLIT_OFF) ?: SPLIT_OFF
@@ -47,8 +56,9 @@ class SettingsStore(context: Context) {
 
     fun load(): TunnelOptions {
         migrateCdnDefault()
+        migrateAutoSpeedDefault()
         return TunnelOptions(
-            protocol = ProtocolMode.fromConfig(prefs.getString(KEY_PROTOCOL, "cdn_fronting") ?: "cdn_fronting"),
+            protocol = ProtocolMode.fromConfig(prefs.getString(KEY_PROTOCOL, "auto") ?: "auto"),
             region = prefs.getString(KEY_REGION, "") ?: "",
             upstreamProxyUrl = prefs.getString(KEY_UPSTREAM, "") ?: "",
             enableTimeout = prefs.getBoolean(KEY_TIMEOUT, false),
@@ -74,6 +84,23 @@ class SettingsStore(context: Context) {
         prefs.edit()
             .putBoolean(KEY_MIGRATED_CDN, true)
             .putString(KEY_PROTOCOL, ProtocolMode.CDN_FRONTING.configValue)
+            .apply()
+    }
+
+    /**
+     * One-time migration (v2.2.0 measured-speed default): CDN-fronting-only
+     * mode pins every dial to meek-over-CDN edges, which on many mobile
+     * networks throttles the session to kilobytes. The wider AUTO mode keeps
+     * all the CDN fronting machinery (scan spec + edge overrides are applied
+     * in AUTO too by the config builder) but lets the fast direct protocols
+     * (OSSH / QUIC-OSSH / Shadowsocks) win establishment when the network
+     * allows them — measured speed goes from KB/s to MB/s.
+     */
+    private fun migrateAutoSpeedDefault() {
+        if (prefs.getBoolean(KEY_MIGRATED_AUTO_SPEED, false)) return
+        prefs.edit()
+            .putBoolean(KEY_MIGRATED_AUTO_SPEED, true)
+            .putString(KEY_PROTOCOL, ProtocolMode.AUTO.configValue)
             .apply()
     }
 
@@ -139,6 +166,7 @@ class SettingsStore(context: Context) {
         private const val KEY_LANGUAGE = "language"
         private const val KEY_PROTOCOL = "protocol"
         private const val KEY_MIGRATED_CDN = "migrated_cdn_default"
+        private const val KEY_MIGRATED_AUTO_SPEED = "migrated_auto_speed_default"
         private const val KEY_REGION = "region"
         private const val KEY_UPSTREAM = "upstream_proxy_url"
         private const val KEY_TIMEOUT = "enable_timeout"

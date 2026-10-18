@@ -2,6 +2,7 @@ package io.github.nayrasolcr.forough.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -11,12 +12,14 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -78,6 +82,9 @@ import io.github.nayrasolcr.forough.ui.theme.GraphTx
 import io.github.nayrasolcr.forough.ui.theme.ForoughGold
 import kotlinx.coroutines.delay
 import kotlin.math.ceil
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * ConnectionPanel — the hero of the main screen, Android counterpart of the
@@ -273,8 +280,38 @@ private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifi
         ),
         label = "sweepAngle"
     )
+    // Counter-rotating second arc — richer establishment motion.
+    val sweepAngle2 by sweep.animateFloat(
+        initialValue = 360f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2100, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sweepAngle2"
+    )
     // Breathing glow while idle.
     val idlePulse = breathingPulse(target = 0.86f, periodMs = 1200)
+    // Connected: soft luminous halo breathing.
+    val haloPulse = if (connected) breathingPulse(target = 0.92f, periodMs = 1600) else 1f
+
+    // Success burst — one-shot particle explosion when the tunnel connects.
+    var burstKey by remember { mutableIntStateOf(0) }
+    LaunchedEffect(connected) {
+        if (connected) burstKey++
+    }
+    var burstProgress by remember { mutableFloatStateOf(1f) }
+    LaunchedEffect(burstKey) {
+        if (burstKey > 0) {
+            burstProgress = 0f
+            animate(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = tween(900, easing = FastOutSlowInEasing)
+            ) { value, _ -> burstProgress = value }
+        }
+    }
+
     val ringColor = when {
         connected -> ConnectedGreen
         connecting -> AdwAccent
@@ -296,10 +333,10 @@ private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifi
             (size.height - diameter) / 2f
         )
 
-        // Soft outer glow — two layered translucent circles.
+        // Soft outer glow — layered translucent circles, breathing when live.
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(glowColor, Color.Transparent),
+                colors = listOf(glowColor.copy(alpha = glowColor.alpha * haloPulse), Color.Transparent),
                 center = center,
                 radius = size.minDimension / 2f
             ),
@@ -307,7 +344,8 @@ private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifi
         )
 
         if (connecting) {
-            // Track + rotating gradient arc — "working on it".
+            // Track + TWO rotating gradient arcs sweeping opposite ways —
+            // "working on it" with visible depth.
             drawArc(
                 color = ringColor.copy(alpha = 0.18f),
                 startAngle = 0f, sweepAngle = 360f, useCenter = false,
@@ -325,6 +363,17 @@ private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifi
                 topLeft = topLeft, size = arcSize,
                 style = Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
             )
+            drawArc(
+                brush = Brush.sweepGradient(
+                    0f to ringColor.copy(alpha = 0.05f),
+                    0.5f to ringColor.copy(alpha = 0.55f),
+                    1f to ringColor.copy(alpha = 0.05f),
+                    center = center
+                ),
+                startAngle = sweepAngle2, sweepAngle = 70f, useCenter = false,
+                topLeft = topLeft, size = arcSize,
+                style = Stroke(stroke * 0.6f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            )
         } else {
             // Steady ring: full when connected, faint when idle.
             val alpha = if (connected) 0.95f else 0.45f
@@ -334,6 +383,25 @@ private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifi
                 topLeft = topLeft, size = arcSize,
                 style = Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
             )
+        }
+
+        // Success burst: 14 particles flying outward, fading + shrinking.
+        if (connected && burstProgress < 1f) {
+            val radius = diameter / 2f
+            val travel = burstProgress
+            for (i in 0 until BURST_PARTICLES) {
+                val angle = (i.toFloat() / BURST_PARTICLES) * 2f * PI.toFloat()
+                val dist = radius * (1f + travel * 0.55f)
+                val px = center.x + cos(angle) * dist
+                val py = center.y + sin(angle) * dist
+                val particleAlpha = (1f - travel).coerceIn(0f, 1f) * 0.85f
+                val particleRadius = (1f - travel * 0.7f) * 3.2.dp.toPx()
+                drawCircle(
+                    color = ConnectedGreen.copy(alpha = particleAlpha),
+                    radius = particleRadius,
+                    center = Offset(px, py)
+                )
+            }
         }
     }
 }
@@ -419,6 +487,16 @@ private fun SpeedCard(
     icon: String,
     modifier: Modifier = Modifier
 ) {
+    // Session-relative intensity — the bar fills toward the fastest burst
+    // seen this session, giving the numbers a physical, gauge-like feel.
+    var peak by remember { mutableLongStateOf(0L) }
+    if (speedBps > peak) peak = speedBps
+    val barFraction by animateFloatAsState(
+        targetValue = if (peak <= 0) 0f else (speedBps.toFloat() / peak).coerceIn(0f, 1f),
+        animationSpec = tween(420),
+        label = "speedBar"
+    )
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
@@ -452,6 +530,27 @@ private fun SpeedCard(
                     text = value + "/s",
                     style = MaterialTheme.typography.titleMedium,
                     color = color
+                )
+            }
+            // Gradient intensity bar under the digits.
+            Box(
+                modifier = Modifier
+                    .padding(top = 6.dp)
+                    .fillMaxWidth(0.72f)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(color.copy(alpha = 0.15f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(barFraction)
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(color.copy(alpha = 0.55f), color)
+                            )
+                        )
                 )
             }
         }
@@ -606,6 +705,8 @@ private fun DrawScope.drawSeries(history: List<Double>, color: Color) {
     )
     drawPath(line, color.copy(alpha = 0.95f), style = Stroke(2.dp.toPx()))
 }
+
+private const val BURST_PARTICLES = 14
 
 private fun pushSample(history: MutableList<Double>, value: Double) {
     for (i in 0 until history.size - 1) {

@@ -335,7 +335,13 @@ class VpnManager private constructor() {
 
     companion object {
         private const val TAG = "ForoughVpn"
-        private const val VPN_INTERFACE_MTU = 1500
+        // 1400 instead of 1500: the inner TCP/UDP packets are re-encapsulated
+        // by the tunnel core (QUIC-OSSH adds its own outer header). A full
+        // 1500-byte inner datagram would fragment on the wire — HTTP/3 (video
+        // streaming!) breaks down to slow TCP retries. 1400 keeps outer
+        // packets under the path MTU so QUIC streams stay unfragmented and
+        // fast — a core piece of the KB/s → MB/s speed work.
+        private const val VPN_INTERFACE_MTU = 1400
         private const val VPN_INTERFACE_IPV4_NETMASK = "255.255.255.0"
         private const val UDPGW_SERVER_PORT = 7300
 

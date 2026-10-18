@@ -70,6 +70,13 @@
     <string name="scanner_edges_applied_fmt">%1$d edges applied — reconnect to use them</string>
     <string name="scanner_select_needed">Select at least one edge</string>
     <string name="scanner_no_results">No results yet — start a scan</string>
+    <string name="scanner_dead">unreachable</string>
+    <string name="scanner_probed">probed</string>
+    <string name="scanner_use_connect">Use selected &amp; connect</string>
+    <string name="scanner_select_fastest">Fastest 12</string>
+    <string name="scanner_more_fmt">…and %1$d more fast edges</string>
+    <string name="scanner_edges_connected_fmt">%1$d fastest edges applied — connecting…</string>
+    <string name="scanner_already_connected">Already connected — disconnect first, then apply again</string>
     <string name="scan_stopped">Scan stopped</string>
     <string name="tls_failed">TLS failed</string>
 
@@ -88,8 +95,8 @@
     <string name="settings_beast_desc">Aggressive establishment: try all protocols on all servers</string>
     <string name="settings_timeout">Enable timeout</string>
     <string name="settings_timeout_desc">Use the establish-tunnel timeout from the config</string>
-    <string name="settings_lan">Enable LAN sharing</string>
-    <string name="settings_lan_desc">Keep private LAN subnets outside the VPN so other devices can reach the proxy</string>
+    <string name="settings_lan">Share proxy on network</string>
+    <string name="settings_lan_desc">Expose the HTTP/SOCKS proxy on Wi-Fi and hotspot so other devices can share this tunnel</string>
     <string name="settings_upstream">Upstream proxy</string>
     <string name="settings_upstream_hint">http, https, or socks5 URL (optional)</string>
     <string name="settings_compartment">Personal conduit compartment ID</string>
@@ -138,6 +145,26 @@
     <string name="settings_save">Save</string>
     <string name="settings_saved">Settings saved</string>
     <string name="settings_note">Connection changes apply on the next connect. Language and interface changes take effect immediately.</string>
+
+    <!-- Proxy sharing -->
+    <string name="share_title">Proxy sharing</string>
+    <string name="share_toggle">Share this tunnel\'s proxy</string>
+    <string name="share_toggle_desc">Bind the HTTP/SOCKS proxies to the whole network (Wi-Fi + hotspot) and keep LAN traffic out of the VPN</string>
+    <string name="share_endpoints">Proxy endpoints for other devices</string>
+    <string name="share_no_network">No local network address found — connect to Wi-Fi or enable the hotspot, then come back.</string>
+    <string name="share_all_addresses">All reachable addresses:</string>
+    <string name="share_disabled_body">Turn on sharing to reveal the proxy address for your other devices. The change applies on the next connect.</string>
+    <string name="share_howto_title">How to use</string>
+    <string name="share_howto_1">1. Turn on sharing above and connect Forough.</string>
+    <string name="share_howto_2">2. On the other device, open its proxy/VPN settings and set the HTTP proxy to the address shown here (or scan the QR code).</string>
+    <string name="share_howto_3">3. The other device\'s traffic now rides this phone\'s Forough tunnel — works over Wi-Fi and hotspot.</string>
+    <string name="share_warning">Only share with people you trust: everything they do goes through your tunnel and your carrier connection.</string>
+    <string name="share_copy">Copy</string>
+    <string name="share_copied">Address copied</string>
+    <string name="share_applies_next_connect">Sharing is on — applies on the next connect</string>
+    <string name="share_off_hint">Sharing is off — other devices cannot reach the proxy</string>
+    <string name="share_open">Proxy sharing…</string>
+    <string name="share_open_desc">Endpoints, QR code and setup steps for sharing this tunnel on Wi-Fi/hotspot</string>
 
     <!-- Logs / About / Tools -->
     <string name="logs_title">Tunnel logs</string>

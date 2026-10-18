@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Article
@@ -72,7 +73,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 private enum class Screen(val depth: Int) {
-    MAIN(0), SCANNER(1), SETTINGS(1), LOGS(1), ABOUT(1), APPS(2)
+    MAIN(0), SCANNER(1), SETTINGS(1), LOGS(1), ABOUT(1), SHARE(1), APPS(2)
 }
 
 /**
@@ -191,6 +192,7 @@ fun ForoughApp(
         Screen.SETTINGS -> stringResource(R.string.settings)
         Screen.LOGS -> stringResource(R.string.logs_title)
         Screen.ABOUT -> stringResource(R.string.about)
+        Screen.SHARE -> stringResource(R.string.share_title)
         Screen.APPS -> stringResource(R.string.apps_title)
     }
 
@@ -264,6 +266,14 @@ fun ForoughApp(
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
+                                text = { Text(stringResource(R.string.share_title)) },
+                                leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    screen = Screen.SHARE
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text(stringResource(R.string.logs_title)) },
                                 leadingIcon = { Icon(Icons.Outlined.Article, contentDescription = null) },
                                 onClick = {
@@ -311,30 +321,40 @@ fun ForoughApp(
             ) {
                 when (current) {
                     Screen.MAIN -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            StaggeredItem(index = 0) {
-                                ConnectionPanel(
-                                    stats = stats,
-                                    running = running,
-                                    onConnect = onConnect,
-                                    onDisconnect = onDisconnect,
-                                    onSpeedTest = runSpeedTest,
-                                    onDiagnostics = copyDiagnostics,
-                                    onLogs = { screen = Screen.LOGS },
-                                    onAbout = { screen = Screen.ABOUT }
-                                )
-                            }
-                            StaggeredItem(index = 1) {
-                                StatsPanel(stats = stats, running = running)
+                        // The v2.2.0 graphics layer: a living aurora behind the
+                        // hero — dim while idle, luminous while connected.
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            AuroraBackground(
+                                active = running && stats.status == "connected",
+                                modifier = Modifier.matchParentSize()
+                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                StaggeredItem(index = 0) {
+                                    ConnectionPanel(
+                                        stats = stats,
+                                        running = running,
+                                        onConnect = onConnect,
+                                        onDisconnect = onDisconnect,
+                                        onSpeedTest = runSpeedTest,
+                                        onDiagnostics = copyDiagnostics,
+                                        onLogs = { screen = Screen.LOGS },
+                                        onAbout = { screen = Screen.ABOUT }
+                                    )
+                                }
+                                StaggeredItem(index = 1) {
+                                    StatsPanel(stats = stats, running = running)
+                                }
                             }
                         }
                     }
                     Screen.SCANNER -> ScannerScreen(
                         store = store,
+                        running = running,
+                        onConnect = onConnect,
                         onToast = { message -> ForoughBus.setToast(message) }
                     )
                     Screen.SETTINGS -> SettingsScreen(
@@ -342,7 +362,12 @@ fun ForoughApp(
                         onSave = { message -> ForoughBus.setToast(message) },
                         onLanguageChanged = onLanguageChanged,
                         onBatteryHelper = onBatteryHelper,
-                        onOpenApps = { screen = Screen.APPS }
+                        onOpenApps = { screen = Screen.APPS },
+                        onOpenShare = { screen = Screen.SHARE }
+                    )
+                    Screen.SHARE -> ShareScreen(
+                        store = store,
+                        onToast = { message -> ForoughBus.setToast(message) }
                     )
                     Screen.APPS -> AppsScreen(
                         store = store,

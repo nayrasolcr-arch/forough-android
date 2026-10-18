@@ -82,6 +82,15 @@ object TunnelConfigBuilder {
         root.put("LocalHttpProxyPort", HTTP_PROXY_PORT)
         root.put("LocalSocksProxyPort", SOCKS_PROXY_PORT)
 
+        // Proxy sharing (LAN / hotspot): bind the local HTTP + SOCKS proxies
+        // on all interfaces so other devices can point their proxy settings
+        // at this phone. Pairs with the VPN's LAN route exclusion
+        // (VpnManager.setShareProxyOnNetwork) which keeps private subnets
+        // out of the tunnel so the clients can actually reach the listener.
+        if (options.enableLan) {
+            root.put("ListenInterface", "any")
+        }
+
         // ----- desktop build_config parity -----
         root.put("EgressRegion", options.region.trim())
         root.put("EmitBytesTransferred", true)

@@ -54,7 +54,8 @@ fun SettingsScreen(
     onSave: (String) -> Unit,
     onLanguageChanged: () -> Unit,
     onBatteryHelper: () -> Unit,
-    onOpenApps: () -> Unit
+    onOpenApps: () -> Unit,
+    onOpenShare: () -> Unit
 ) {
     var options by remember { mutableStateOf(store.load()) }
     var autoConnect by remember { mutableStateOf(store.autoConnect) }
@@ -148,6 +149,22 @@ fun SettingsScreen(
                 stringResource(R.string.settings_lan_desc),
                 options.enableLan
             ) { options = options.copy(enableLan = it) }
+
+            // ----- Proxy sharing screen shortcut -----
+            OutlinedButton(
+                onClick = {
+                    Haptics.tap()
+                    onOpenShare()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.share_open))
+            }
+            Text(
+                stringResource(R.string.share_open_desc),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         // ===================== Power features =====================

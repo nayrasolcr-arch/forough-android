@@ -1,32 +1,24 @@
-# Forough (فروغ) 2.1.0 — Android
+# Forough (فروغ) 2.2.0 — Android
 
 **فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet
 
-## What's new in 2.1.0 — the "fluid + powerful" release
+## What's new in 2.2.0 — the "share + speed + shine" release
 
 **فارسی:**
-- **انیمیشن واقعی و روان**: حلقهٔ وضعیت زنده دور دکمهٔ اتصال (کمان چرخان هنگام اتصال، هالهٔ سبز آرام وقتی متصل است)، فیزیک فنری روی همهٔ دکمه‌ها، شمارنده‌های سرعت با انیمیشن جابه‌جایی رقم‌ها، ورود پلکانی اجزا در هر صفحه و گذار اسلاید+زوم بین صفحه‌ها.
-- **قطع اتصال فوری — دکمه دیگر گیر نمی‌کند**: علت اصلی «گیر کردن» پیدا و رفع شد: teardown سنگین (خاموش‌کردن tun2socks و موتور) روی ترد اصلی اجرا می‌شد و رابط را چند ثانیه قفل می‌کرد. حالا با اولین لمسِ قطع، رابط بلافاصله آزاد می‌شود و خاموش‌سازی در پس‌زمینه انجام می‌گیرد.
-- **نمایش وضعیت کامل هنگام اتصال**: کپسول‌های سرعت زندهٔ دانلود/آپلود، نمودار ترافیک نرم‌تر با نمونه‌برداری دو برابر سریع‌تر، نوتیفیکیشن با کرنومتر زمان اتصال + سرعت لحظه‌ای + منطقه/پروتکل، و پیام تأیید «متصل شد» با لرزش.
-- **قابلیت‌های تقویتی جدید**:
-  - **تقسیم تونل (Split Tunneling)**: انتخاب برنامه‌هایی که از VPN عبور می‌کنند یا از آن خارج می‌مانند — با جستجو، آیکون و انتخاب چندتایی.
-  - **کاشی Quick Settings**: وصل/قطع مستقیم از سایه‌نوار اندروید بدون باز کردن برنامه.
-  - **اتصال خودکار هنگام باز شدن برنامه**.
-  - **استثنا از بهینه‌سازی باتری**: یک‌ضرب از داخل تنظیمات (برای شیائومی/سامسونگ/هوآوی).
-  - **میان‌بر Always-on VPN و کلید قطعی (Kill Switch)**: باز کردن مستقیم تنظیمات VPN اندروید.
-  - **بازخورد لرزشی** روی اتصال/قطع/دکمه‌ها (قابل خاموش‌کردن).
-- **تایپوگرافی جدید**: فونت وزیرمتن برای فارسی و لاتین — متن فارسی بالاخره درست و خوش‌خوان نمایش داده می‌شود.
-- **پاسخ فوری تست سرعت**: نتیجهٔ تست سرعت حالا مستقیم به‌شکل پیام نمایش داده می‌شود (علاوه بر لاگ و عیب‌یابی).
-- همهٔ دکمه‌ها بازبینی شدند و همه با بازخورد (لرزش/پیام/انیمیشن) کار می‌کنند: اسکنر، تست سرعت، عیب‌یابی، لاگ‌ها، تنظیمات، انتخاب برنامه‌ها و منوی بیشتر.
+- **اشتراک‌گذاری پروکسی**: تونل فروغ حالا می‌تواند با بقیهٔ دستگاه‌ها به اشتراک گذاشته شود — گوشی دیگر، لپ‌تاپ، تلویزیون. سوییچ اشتراک‌گذاری پروکسی‌های HTTP/SOCKS را روی وای‌فای و هات‌اسپات باز می‌کند، صفحهٔ جدید «اشتراک‌گذاری پروکسی» آدرس‌ها را نشان می‌دهد، **QR کد** می‌سازد و مراحل راه‌اندازی را قدم‌به‌قدم توضیح می‌دهد. در منوی بیشتر و تنظیمات هم میان‌بر دارد.
+- **سرعت پیش‌فرض به سطح مگابایت**: حالت پیش‌فرض اتصال به **خودکار (Auto)** تغییر کرد — همهٔ مکانیزم‌های CDN فرانتینگ (اسکن لبه‌ها، رتبه‌بندی کیفیت، گزینه‌های لبه) فعال می‌مانند اما پروتکل‌های مستقیم سریع (OSSH / QUIC-OSSH / Shadowsocks) هم اجازهٔ مسابقه دارند؛ روی شبکه‌هایی که حالت فقط-CDN را به کیلوبایت محدود می‌کرد، این تغییر سرعت را به مگابایت می‌رساند. حالت CDN Fronting همچنان برای شبکه‌های فیلترشده در تنظیمات هست.
+- **MTU بهینه شد (۱۴۰۰)**: بسته‌های داخلی دیگر هنگام عبور از تونل تکه‌تکه نمی‌شوند؛ **HTTP/3 و پخش ویدیو** که قبلاً به TCP کند برمی‌گشت حالا روان باز می‌شود.
+- **اسکنر دستی دیگر لگ نمی‌زنه**: ریشهٔ لگ پیدا شد — نتایج ۹۶+ ترد کارگر مستقیم روی state رابط کامپوز می‌نوشت و کل لیست ده‌ها بار در ثانیه بازترسیم می‌شد. حالا نتایج در بافر میانی جمع و هر ۱۲۰ میلی‌ثانیه یک‌بار روی ترد اصلی به رابط منتقل می‌شود؛ لیست نتایج هم Lazy با کلید پایدار و مرتب‌شدهٔ «سریع‌ترین اول» است، همراه چیپ‌های زندهٔ آماری و نوار سرعت برای هر لبه.
+- **«IPهای فعال وصل نمی‌شدند» رفع شد**: قبلاً همهٔ IPهای زنده (حتی صدها IP زندهٔ TLS) خودکار تیک می‌خوردند و ترتیب برقراری تونل را روی لبه‌های مرده هدر می‌داد. حالا **۱۲ لبهٔ سریع‌تر** خودکار انتخاب می‌شوند، «استفاده از انتخاب‌ها» فقط ۱۶ لبهٔ برتر (سریع‌ترین اول) را می‌نویسد و پروتکل را هم خودکار روی CDN می‌گذارد؛ دکمهٔ جدید **«استفاده و اتصال»** در یک لمس اعمال + اتصال می‌کند.
+- **گرافیک بیشتر، انیمیشن روان‌تر**: پس‌زمینهٔ زندهٔ شفق قطبی (aurora) پشت پنل اتصال — خاموش کم‌نور، متصل درخشان؛ انفجار ذرات سبز هنگام اتصال موفق؛ دو کمان چرخان مخالف هنگام برقراری؛ نوار شدت گرادیانی زیر سرعت‌ها؛ ردیف‌های نتایج اسکنر با بج رتبهٔ طلایی.
 
 **English:**
-- **Real, fluid motion**: a live status ring around the power button (rotating arc while connecting, calm green glow when connected), spring physics on every button, odometer-style animated speed digits, staggered component entrances and slide+zoom screen transitions.
-- **Instant disconnect — the button never sticks again**: root cause fixed — the heavy teardown (tun2socks + engine shutdown) used to run on the main thread and froze the UI for seconds. The UI now unlocks on the very first tap while the teardown finishes in the background.
-- **Full connected feedback**: live down/up speed capsules, a smoother traffic graph at double the sampling rate, a notification with an uptime chronometer + live speeds + region/protocol, and a haptic "connected" greeting.
-- **New power features**: per-app **split tunneling** with a searchable app picker, a **Quick Settings tile**, **auto-connect on launch**, a **battery-optimization exemption** helper, an **Always-on VPN / kill switch** shortcut, and optional **haptic feedback**.
-- **New typography**: Vazirmatn for Persian + Latin — Persian text finally renders properly and beautifully.
-- **Speed test answers in the UI**: the result now surfaces as a toast in addition to the logs/diagnostics.
-- Every button was audited and now responds with haptics/feedback: scanner, speed test, diagnostics, logs, settings, app picker and the overflow menu.
+- **Proxy sharing**: Forough's tunnel can now be shared with other devices — another phone, a laptop, a TV. The new **Proxy sharing** screen binds the HTTP/SOCKS proxies to the whole network (Wi-Fi + hotspot), shows the exact endpoints, generates a **QR code**, and walks through the setup. Available from the overflow menu and Settings.
+- **Default connection speed: megabytes**: the default protocol mode is now **Auto** — all the CDN fronting machinery (edge scan, quality ranking, dial overrides) stays active, but the fast direct protocols (OSSH / QUIC-OSSH / Shadowsocks) get to compete too. On networks where CDN-only mode throttled sessions to kilobytes, this lifts throughput to megabytes. CDN Fronting remains available for heavily filtered networks.
+- **Tuned MTU (1400)**: inner packets no longer fragment inside the tunnel; **HTTP/3 and video streaming** that used to fall back to slow TCP now flow smoothly.
+- **Manual scan no longer lags**: root cause fixed — 96+ scanner worker threads wrote straight into Compose state and re-rendered the whole result list dozens of times per second. Results now stage in a buffer and fold into the UI on the main thread every 120 ms; the list is a lazy column with stable keys, sorted fastest-first, with live stat chips and a per-edge speed bar.
+- **"Selected IPs don't connect" fixed**: previously every TLS-alive IP auto-checked (hundreds on a Cloudflare-wide scan) and the tunnel burned its establishment budget on dead fronting pairs. Now the **fastest 12** auto-check, "Use selected" writes only the top 16 (fastest first) and switches the protocol to CDN; the new **"Use selected & connect"** button applies and connects in one tap.
+- **More graphics, smoother motion**: a living **aurora background** behind the connection panel (dim when idle, luminous when connected), a green **particle burst** on successful connect, **two counter-rotating arcs** while establishing, gradient intensity bars under the speed cards, and gold rank badges in the scanner results.
 
 ---
 
@@ -45,5 +37,6 @@ The **native Forough Android client** — an exact port of the Forough Linux des
 
 ## Notes
 
-- Signed with the Forough community distribution key (stable across releases) — install directly over 2.0.2/2.0.1/2.0.0.
-- The engine remains the Forough psiphon-tunnel-core fork; the CDN Fronting mode stays the factory default for the fastest measured connections.
+- Signed with the Forough community distribution key (stable across releases) — install directly over 2.1.0 and older.
+- One-time settings migration: existing installs move from CDN-fronting-only to Auto on first launch of 2.2.0 (the measured-speed default). CDN Fronting stays selectable in Settings.
+- The engine remains the Forough psiphon-tunnel-core fork.
