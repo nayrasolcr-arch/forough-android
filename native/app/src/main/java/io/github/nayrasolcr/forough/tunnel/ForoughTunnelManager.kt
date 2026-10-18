@@ -617,7 +617,7 @@ class ForoughTunnelManager(
         xrayEngine.fragmentTls = store.xrayFragmentTls
         engineActive = "xray"
         lifecycleExecutor.execute {
-            if (!running || stopping) return@lifecycleExecutor
+            if (!running || stopping) return@execute
             try {
                 vpnManager.registerHostService(builderProvider)
                 vpnManager.setShareProxyOnNetwork(options.enableLan)
@@ -625,7 +625,7 @@ class ForoughTunnelManager(
                 vpnManager.vpnEstablish()
             } catch (e: Exception) {
                 appendLog("vpn establish failed: ${e.message}")
-                return@lifecycleExecutor
+                return@execute
             }
             val started = xrayEngine.start(
                 servers,
@@ -642,7 +642,7 @@ class ForoughTunnelManager(
     /** Start (or restart) the Psiphon core in-place, keeping the VPN up. */
     private fun startPsiphonCore() {
         lifecycleExecutor.execute {
-            if (!running || stopping) return@lifecycleExecutor
+            if (!running || stopping) return@execute
             try {
                 vpnManager.stopRouteThroughTunnel()
                 tunnel?.stop()
@@ -675,7 +675,7 @@ class ForoughTunnelManager(
         }
         publish()
         lifecycleExecutor.execute {
-            if (!running || stopping) return@lifecycleExecutor
+            if (!running || stopping) return@execute
             try {
                 vpnManager.stopRouteThroughTunnel()
                 tunnel?.stop()
