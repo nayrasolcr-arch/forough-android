@@ -69,13 +69,19 @@ object ForoughGlows {
     val rescue = Color(0xFFE64CC8)
 }
 
-/** Soft radial glow + scaled 24×24 canvas host shared by all glyphs. */
+/**
+ * Soft radial glow + scaled 24×24 canvas host shared by all glyphs.
+ * When `halo = false` the glyph paints clean — used inside filled
+ * surfaces (the power button) where a second glow would read as a
+ * misplaced blob overlapping the button's own gradient.
+ */
 @Composable
 private fun GlyphHost(
     size: Dp,
     glowColor: Color,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
+    halo: Boolean = true,
     draw: DrawScope.() -> Unit
 ) {
     val scoped = if (contentDescription != null) {
@@ -86,20 +92,22 @@ private fun GlyphHost(
     Box(modifier = scoped.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(size)) {
             val r = this.size.minDimension
-            // Two-stop radial halo — cheap, GPU-friendly, no blur passes.
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        glowColor.copy(alpha = 0.34f),
-                        glowColor.copy(alpha = 0.10f),
-                        Color.Transparent
+            if (halo) {
+                // Two-stop radial halo — cheap, GPU-friendly, no blur passes.
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            glowColor.copy(alpha = 0.34f),
+                            glowColor.copy(alpha = 0.10f),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = r * 0.5f
                     ),
-                    center = center,
-                    radius = r * 0.5f
-                ),
-                radius = r * 0.5f,
-                center = center
-            )
+                    radius = r * 0.5f,
+                    center = center
+                )
+            }
             val scale = r / 24f
             withTransformScaled(scale) { draw() }
         }
@@ -300,8 +308,14 @@ fun InfoOrbIcon(size: Dp, modifier: Modifier = Modifier, contentDescription: Str
 // ---------------------------------------------------------------------------
 
 @Composable
-fun PowerBoltIcon(size: Dp, modifier: Modifier = Modifier, tint: Color? = null, contentDescription: String? = null) {
-    GlyphHost(size, ForoughGlows.power, modifier, contentDescription) {
+fun PowerBoltIcon(
+    size: Dp,
+    modifier: Modifier = Modifier,
+    tint: Color? = null,
+    contentDescription: String? = null,
+    halo: Boolean = true
+) {
+    GlyphHost(size, ForoughGlows.power, modifier, contentDescription, halo) {
         val b = tint?.let { Brush.verticalGradient(listOf(it, it)) } ?: ForoughBrushes.power
         drawArc(
             brush = b, startAngle = 52f, sweepAngle = 256f, useCenter = false,

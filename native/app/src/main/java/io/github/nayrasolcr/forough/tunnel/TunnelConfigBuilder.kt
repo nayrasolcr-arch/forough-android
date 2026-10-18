@@ -77,17 +77,27 @@ object TunnelConfigBuilder {
     private val CDN_FRONTING_PROTOCOLS = listOf(
         "FRONTED-MEEK-CDN-OSSH", "FRONTED-MEEK-CDN-HTTP-OSSH",
         "FRONTED-MEEK-CDN-QUIC-OSSH",
+        // Native per-server fronting (v2.4.1 — promoted above the
+        // unfronted transports): these dial the fronting domain each server
+        // entry carries — the pairs the Psiphon network actively rotates
+        // and maintains — instead of the baked-in scan corpus. When Iran
+        // rotates its blocks faster than the scan corpus updates, these
+        // native pairs are the ones most likely to still be alive.
+        "FRONTED-MEEK-OSSH", "FRONTED-MEEK-HTTP-OSSH",
+        "FRONTED-MEEK-QUIC-OSSH",
         // Fallback tail (v2.4.0 field fix): the user log proved that under
         // heavy filtering every CDN meek front can die (0/1701 scan
         // candidates working). A CDN-only protocol set then spins forever
         // with zero tunnels. These rescue protocols sit AFTER the CDN set —
         // the core still prefers the quality-ranked CDN edges, but when
         // they are all dead it can now actually establish something
-        // instead of waiting indefinitely.
+        // instead of waiting indefinitely. UNFRONTED-MEEK dials Psiphon
+        // server IPs (often blackholed) so it stays behind the native
+        // fronting protocols.
         "UNFRONTED-MEEK-SESSION-TICKET-OSSH", "UNFRONTED-MEEK-HTTPS-OSSH",
-        "UNFRONTED-MEEK-OSSH", "FRONTED-MEEK-OSSH", "FRONTED-MEEK-HTTP-OSSH",
+        "UNFRONTED-MEEK-OSSH",
         "SHADOWSOCKS-OSSH", "TLS-OSSH", "OSSH", "SSH",
-        "QUIC-OSSH", "FRONTED-MEEK-QUIC-OSSH"
+        "QUIC-OSSH"
     )
 
     // EXTREME mode (v2.4.0): every transport the core knows — meek in all
@@ -161,6 +171,32 @@ object TunnelConfigBuilder {
         // EnableTCPOptimizations). On by default: substantially better
         // sustained throughput on lossy, high-latency mobile networks.
         root.put("EnableTCPOptimizations", options.enableTurboNetwork)
+
+        // ----------------------------------------------------------------
+        // DPI-evasion layer (v2.4.1) — research-driven (Iran field data).
+        //
+        // The second user log showed every direct TCP dial to Psiphon
+        // server IPs timing out (IP-level blackholing) — the only surviving
+        // paths are TLS to CDN edges. Iran's remaining lever there is
+        // SNI-based RST injection and TLS size/timing fingerprinting.
+        // These knobs (upstream fields, used by Psiphon ops against the
+        // same DPI) counter exactly that:
+        //
+        // TLSFragmentClientHello — splits the ClientHello so SNI filters
+        // can't reassemble it. This is the same class of fix as v2ray's
+        // "fragment" setting that currently works in Iran.
+        //
+        // MeekPayloadPadding — pads meek HTTP payloads so the SSH
+        // handshake's size signature doesn't match a blockable profile.
+        // ----------------------------------------------------------------
+        root.put("TLSFragmentClientHelloProbability", 0.8)
+        root.put("TLSFragmentClientHelloLimitProtocols", JsonUtil.stringArray(listOf(
+            "FRONTED-MEEK-OSSH", "FRONTED-MEEK-HTTP-OSSH",
+            "FRONTED-MEEK-CDN-OSSH", "FRONTED-MEEK-CDN-HTTP-OSSH",
+            "UNFRONTED-MEEK-HTTPS-OSSH", "UNFRONTED-MEEK-SESSION-TICKET-OSSH",
+            "TLS-OSSH"
+        )))
+        root.put("MeekPayloadPaddingProbability", 0.7)
 
         // Protocol selection mirrors the desktop client (and the Psiphon
         // Android client it was ported from).

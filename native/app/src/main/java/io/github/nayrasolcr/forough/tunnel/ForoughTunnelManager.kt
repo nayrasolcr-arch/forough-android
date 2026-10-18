@@ -70,19 +70,19 @@ class ForoughTunnelManager(
     // clients (official Psiphon tactics, Chinese-style protocol switching)
     // behave under national-level filtering:
     //
-    //   stage 0 — the user's chosen mode, untouched (40s)
+    //   stage 0 — the user's chosen mode, untouched (30s)
     //   stage 1 — TCP-only self-heal: strip QUIC (the log's dominant
-    //             failure mode: QUICTransporter.dialQUIC failed x179) (40s)
-    //   stage 2 — full protocol set: every meek form + Shadowsocks +
-    //             SSH/OSSH + CDN scan, still region-constrained (55s)
-    //   stage 3 — EXTREME: all transports, region preference released,
-    //             keeps escalating on a 55s cadence until connected
+    //             failure mode: QUICTransporter.dialQUIC failed x179) (35s)
+    //   stage 2 — EXTREME protocol set: every meek form + Shadowsocks +
+    //             SSH/OSSH + CDN scan + conduit, region kept (45s)
+    //   stage 3 — EXTREME + region preference released, keeps re-arming on
+    //             a 45s cadence until connected
     //
     // Any successful connect resets the ladder. A manual reconnect always
     // starts fresh at stage 0. Each escalation is announced in the log and
     // the UI (rescueStage stat) so the user SEES the engine fighting.
     // ------------------------------------------------------------------
-    private val rescueStageTimeoutMs = longArrayOf(40_000L, 40_000L, 55_000L, 55_000L)
+    private val rescueStageTimeoutMs = longArrayOf(30_000L, 35_000L, 45_000L, 45_000L)
     private val rescueMaxStage = 3
     @Volatile private var rescueStage = 0
     @Volatile private var rescueStageStartMs = 0L
@@ -436,8 +436,12 @@ class ForoughTunnelManager(
             )
             2 -> base.copy(
                 tcpOnlyOverride = false,
-                protocol = if (base.protocol == ProtocolMode.CONDUIT) ProtocolMode.CONDUIT
-                           else ProtocolMode.DIRECT,
+                // v2.4.1: jump straight to the EXTREME protocol set while
+                // keeping the region preference — the second field log
+                // showed direct Psiphon IPs fully blackholed, so inproxy
+                // (conduit) and every meek form must be in the pool as
+                // early as possible.
+                protocol = ProtocolMode.EXTREME,
                 rescueStage = 2
             )
             else -> base.copy(
@@ -457,7 +461,7 @@ class ForoughTunnelManager(
         options = next
         val stageNote = when (rescueStage) {
             1 -> "QUIC appears blocked — TCP-only protocols"
-            2 -> "expanding to the full protocol set (all meek forms + Shadowsocks + SSH)"
+            2 -> "EXTREME protocol pool — every transport incl. conduit"
             else -> "EXTREME rescue — every transport, region preference released"
         }
         appendLog("rescue engine stage $rescueStage/$rescueMaxStage — $stageNote")

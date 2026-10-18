@@ -1,3 +1,23 @@
+# Forough (فروغ) 2.4.1 — Android
+
+**فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet
+
+## What's new in 2.4.1 — the "anti-DPI + Iran weak-point research" release
+
+**فارسی:**
+- **لایهٔ ضد-DPI (تکه‌تکه‌کردن TLS)**: بر اساس لاگ دوم شما — همهٔ اتصال‌های مستقیم به IPهای سایفون سیاه‌شده بودند (blackhole) و تنها مسیر باقی‌مانده، TLS روی لبه‌های CDN است. سلاح باقی‌ماندهٔ فیلتر، تزریق RST مبتنی بر SNI و انگشت‌نگاری اندازهٔ TLS است. حالا **ClientHello تکه‌تکه** می‌شود (همان تکنیک «fragment» که در ایران جواب می‌دهد) و **پیلود میک هم پدینگ** می‌گیرد تا الگوی اندازه‌اش قابل شناسایی نباشد.
+- **فرونتینگ بومی اول شد**: پروتکل‌های میک با فرونتینگِ خودِ هر سرور (که شبکهٔ سایفون مدام به‌روزرسانی‌شان می‌کند) به پلهٔ دوم حالت CDN ارتقا یافتند — جفت‌های تازه‌تر از مجموعهٔ اسکن داخلی، شانس زنده‌ماندن بیشتری دارند.
+- **پله‌های نجات سریع‌تر و قوی‌تر**: پلهٔ ۲ حالا مستقیم به استخر اکسترم می‌پرد (همهٔ ترنسپورت‌ها + کانالیوت/inproxy) و پلهٔ ۳ محدودیت منطقه را هم آزاد می‌کند. زمان‌بندی: ۳۰ → ۳۵ → ۴۵ → ۴۵ ثانیه.
+- **رفع خروج آیکون از دایرهٔ دکمه**: هالهٔ دوتایی روی گرادیان دکمه حذف شد — آیکون حالا سفیدِ تمیز است و کاملاً داخل دایره می‌نشیند.
+
+**English:**
+- **Anti-DPI layer (TLS fragmentation)**: your second log showed every direct TCP dial to Psiphon IPs blackholed — the only surviving paths are TLS to CDN edges, where the censor's remaining lever is SNI-based RST injection and TLS size fingerprinting. The ClientHello is now **fragmented** (the same "fragment" technique that works in Iran today) and **meek payloads are padded** so the handshake has no stable size signature.
+- **Native per-server fronting promoted**: the meek protocols that dial each server entry's own (network-maintained, freshly rotated) fronting domain now sit directly behind the CDN scan set in CDN mode — fresher pairs than the baked-in scan corpus.
+- **Faster, stronger rescue ladder**: stage 2 jumps straight to the EXTREME pool (every transport incl. conduit/inproxy) and stage 3 releases the region preference. Timings: 30 → 35 → 45 → 45 seconds.
+- **Fixed the icon spilling out of the power button circle**: removed the double glow over the button gradient — the glyph is now clean white, fully inside the disc.
+
+---
+
 # Forough (فروغ) 2.4.0 — Android
 
 **فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet

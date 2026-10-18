@@ -527,7 +527,8 @@ private fun PowerButton(
             ) {
                 Haptics.confirm()
                 if (running) onDisconnect() else onConnect()
-            }
+            },
+        contentAlignment = Alignment.Center
     ) {
         // Rotating sheen: a soft white sweep that keeps the disc alive.
         Canvas(modifier = Modifier.matchParentSize()) {
@@ -545,22 +546,33 @@ private fun PowerButton(
         AnimatedContent(
             targetState = running,
             transitionSpec = {
-                (fadeIn(tween(200)) + slideInVertically(tween(260)) { it / 3 })
-                    .togetherWith(fadeOut(tween(140)) + slideOutVertically(tween(200)) { -it / 3 })
+                (fadeIn(tween(200)))
+                    .togetherWith(fadeOut(tween(140)))
             },
             label = "powerIcon"
         ) { isRunning ->
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // v2.4.1 layout fix: the glyph used to carry its own glow halo
+            // on top of the button gradient — that double-glow overlapped
+            // the disc edge and looked like the icon was spilling out of
+            // the circle. Now: clean white glyph (halo off), sized to
+            // leave a clear margin inside the 132dp disc, with the label
+            // tucked beneath.
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 PowerBoltIcon(
-                    size = 56.dp,
-                    tint = if (isRunning) Color.White else null
+                    size = 48.dp,
+                    tint = Color.White,
+                    halo = false
                 )
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = if (isRunning) {
                         stringResource(R.string.disconnect)
                     } else stringResource(R.string.connect),
                     color = Color.White,
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.labelMedium
                 )
             }
         }
