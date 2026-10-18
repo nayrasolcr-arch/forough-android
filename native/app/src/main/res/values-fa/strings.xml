@@ -89,6 +89,10 @@
     <string name="mode_conduit">کانالیوت</string>
     <string name="mode_direct">مستقیم</string>
     <string name="mode_cdn">فرونتینگ CDN</string>
+    <string name="mode_extreme">اکسترم (فیلترینگ شدید)</string>
+    <string name="mode_cdn_hint">لبه‌های CDN رتبه‌بندی‌شده با فال‌بک خودکار به همهٔ ترنسپورت‌های دیگر اگر فرونت‌ها از کار بیفتند.</string>
+    <string name="mode_extreme_hint">حداکثر مقاومت: همهٔ ترنسپورت‌ها همزمان — میک در همهٔ حالت‌ها، Shadowsocks، SSH، QUIC، اسکن CDN، کانالیوت. برای قطعی کلی و فیلترینگ شدید.</string>
+    <string name="rescue_stage">مرحلهٔ نجات %1$d/%2$d</string>
     <string name="settings_region">منطقه</string>
     <string name="region_any">هر جا (خودکار)</string>
     <string name="settings_beast">حالت بیست</string>

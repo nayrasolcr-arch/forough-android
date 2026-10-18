@@ -59,6 +59,39 @@ class ForoughTunnelManager(
     private val autoRestartMax = 2
     private val perfProbeDelayMs = 8_000L
 
+    // ------------------------------------------------------------------
+    // Rescue Engine (v2.4.0) — the "heavy filtering" auto-escalation ladder.
+    //
+    // Field diagnosis (user log, 2026-10): in CDN fronting mode under a
+    // severe block, ALL 1701 CDN scan candidates were dead and QUIC was
+    // fully blocked — the core spun forever with 0 tunnels because the
+    // protocol set had no escape. The ladder below switches strategies on
+    // a timer while nothing establishes, mirroring how the strongest
+    // clients (official Psiphon tactics, Chinese-style protocol switching)
+    // behave under national-level filtering:
+    //
+    //   stage 0 — the user's chosen mode, untouched (40s)
+    //   stage 1 — TCP-only self-heal: strip QUIC (the log's dominant
+    //             failure mode: QUICTransporter.dialQUIC failed x179) (40s)
+    //   stage 2 — full protocol set: every meek form + Shadowsocks +
+    //             SSH/OSSH + CDN scan, still region-constrained (55s)
+    //   stage 3 — EXTREME: all transports, region preference released,
+    //             keeps escalating on a 55s cadence until connected
+    //
+    // Any successful connect resets the ladder. A manual reconnect always
+    // starts fresh at stage 0. Each escalation is announced in the log and
+    // the UI (rescueStage stat) so the user SEES the engine fighting.
+    // ------------------------------------------------------------------
+    private val rescueStageTimeoutMs = longArrayOf(40_000L, 40_000L, 55_000L, 55_000L)
+    private val rescueMaxStage = 3
+    @Volatile private var rescueStage = 0
+    @Volatile private var rescueStageStartMs = 0L
+    private var rescueWatchdogScheduled = false
+
+    companion object {
+        private const val RESCUE_TICK_MS = 5_000L
+    }
+
     @Volatile private var running = false
     @Volatile private var stopping = false
     private var trafficCheckScheduled = false
@@ -109,6 +142,10 @@ class ForoughTunnelManager(
         lastPerfReport = ""
         lastTrafficCode = 0
 
+        // Rescue Engine: a manual connect always starts a fresh ladder.
+        rescueStage = 0
+        rescueStageStartMs = System.currentTimeMillis()
+
         stats = TunnelStats(
             status = "connecting",
             startedAtMs = System.currentTimeMillis()
@@ -116,6 +153,9 @@ class ForoughTunnelManager(
         publish()
         ForoughBus.publishRunning(true)
         appendLog("connecting — Forough Android (engine: psiphon-tunnel-core)")
+        appendLog("rescue engine armed — auto-escalation if the network blocks this mode")
+
+        scheduleRescueWatchdog()
 
         try {
             vpnManager.registerHostService(builderProvider)
@@ -181,6 +221,7 @@ class ForoughTunnelManager(
         stopping = true
         cancelTrafficCheck()
         cancelPerfProbe()
+        cancelRescueWatchdog()
         mutate {
             it.status = "disconnecting"
             true
@@ -258,6 +299,7 @@ class ForoughTunnelManager(
         running = false
         cancelTrafficCheck()
         cancelPerfProbe()
+        cancelRescueWatchdog()
 
         teardownHeavy()
         tunnel = null
@@ -327,6 +369,136 @@ class ForoughTunnelManager(
             }
         }
     }
+
+    // ------------------------------------------------------------------
+    // Rescue Engine implementation
+    // ------------------------------------------------------------------
+
+    private fun scheduleRescueWatchdog() {
+        if (rescueWatchdogScheduled || !running) return
+        rescueWatchdogScheduled = true
+        mainHandler.postDelayed(rescueWatchdogRunnable, RESCUE_TICK_MS)
+    }
+
+    private fun cancelRescueWatchdog() {
+        rescueWatchdogScheduled = false
+        mainHandler.removeCallbacks(rescueWatchdogRunnable)
+    }
+
+    private val rescueWatchdogRunnable = object : Runnable {
+        override fun run() {
+            if (!running || stopping) return
+            try {
+                rescueWatchdogTick()
+            } finally {
+                if (running && rescueWatchdogScheduled) {
+                    mainHandler.postDelayed(this, RESCUE_TICK_MS)
+                }
+            }
+        }
+    }
+
+    /**
+     * Watchdog tick: while the session runs but no tunnel has established,
+     * escalate through the rescue ladder when the current stage's budget
+     * expires. Connected sessions are untouched.
+     */
+    private fun rescueWatchdogTick() {
+        if (!running || stopping) return
+        if (stats.status == "connected") return
+        if (rescueStageStartMs == 0L) rescueStageStartMs = System.currentTimeMillis()
+
+        val elapsed = System.currentTimeMillis() - rescueStageStartMs
+        val budget = rescueStageTimeoutMs[rescueStage.coerceIn(0, rescueStageTimeoutMs.size - 1)]
+        if (elapsed < budget) return
+
+        if (rescueStage >= rescueMaxStage) {
+            // Ladder is exhausted: keep the last (strongest) configuration
+            // running — the core keeps dialing new candidates — and just
+            // refresh the stage timer so the badge stays honest.
+            rescueStageStartMs = System.currentTimeMillis()
+            return
+        }
+        escalateRescue()
+    }
+
+    /** Tear down and re-establish the tunnel one rung up the ladder. */
+    private fun escalateRescue() {
+        val previous = rescueStage
+        rescueStage++
+        rescueStageStartMs = System.currentTimeMillis()
+
+        val base = options
+        var next: TunnelOptions = when (rescueStage) {
+            1 -> base.copy(
+                tcpOnlyOverride = true,
+                rescueStage = 1
+            )
+            2 -> base.copy(
+                tcpOnlyOverride = false,
+                protocol = if (base.protocol == ProtocolMode.CONDUIT) ProtocolMode.CONDUIT
+                           else ProtocolMode.DIRECT,
+                rescueStage = 2
+            )
+            else -> base.copy(
+                tcpOnlyOverride = false,
+                protocol = ProtocolMode.EXTREME,
+                region = "",
+                rescueStage = 3
+            )
+        }
+        // Stage 3 releases the region preference: when a country is under a
+        // total shutdown, waiting for a specific egress region starves the
+        // candidate pool — any working region beats no connection.
+        if (rescueStage != 3) {
+            next = next.copy(region = base.region)
+        }
+
+        options = next
+        val stageNote = when (rescueStage) {
+            1 -> "QUIC appears blocked — TCP-only protocols"
+            2 -> "expanding to the full protocol set (all meek forms + Shadowsocks + SSH)"
+            else -> "EXTREME rescue — every transport, region preference released"
+        }
+        appendLog("rescue engine stage $rescueStage/$rescueMaxStage — $stageNote")
+        ForoughBus.setToast("rescue stage $rescueStage: $stageNote")
+        mutate {
+            it.status = "reconnecting"
+            it.trafficStatus = "rescue stage $rescueStage…"
+            it.rescueStage = stageBadge(rescueStage, stageNote)
+            true
+        }
+        publish()
+
+        // Serialized with start/stop on the lifecycle thread — same pattern
+        // as autoRestart (which stays responsible for dead-traffic restarts
+        // AFTER a tunnel exists; this ladder handles never-established).
+        lifecycleExecutor.execute {
+            if (!running || stopping) return@execute
+            try {
+                vpnManager.stopRouteThroughTunnel()
+                tunnel?.stop()
+            } catch (_: Exception) {
+            }
+            try {
+                vpnManager.vpnTeardown()
+            } catch (_: Exception) {
+            }
+            try {
+                vpnManager.registerHostService(builderProvider)
+                vpnManager.vpnEstablish()
+                val newTunnel = PsiphonTunnel.newPsiphonTunnel(this)
+                mainHandler.post { tunnel = newTunnel }
+                newTunnel.setVpnMode(true)
+                newTunnel.startTunneling("")
+                appendLog("rescue engine re-established the tunnel core (stage $rescueStage, was $previous)")
+            } catch (e: Exception) {
+                appendLog("rescue stage $rescueStage restart failed: ${e.message}")
+            }
+        }
+    }
+
+    private fun stageBadge(stage: Int, note: String): String = "$stage/$rescueMaxStage — $note"
 
     // ------------------------------------------------------------------
     // PsiphonTunnel.HostService
@@ -425,10 +597,17 @@ class ForoughTunnelManager(
     }
 
     override fun onConnected() {
+        // The ladder did its job — disarm and clear the stage badge.
+        if (rescueStage > 0) {
+            appendLog("rescue engine standing down — tunnel established at stage $rescueStage")
+        }
+        rescueStage = 0
+        cancelRescueWatchdog()
         mutate {
             it.status = "connected"
             it.tunnelCount = 1
             it.publicIp = "-"
+            it.rescueStage = "-"
             if (it.connectedAtMs == 0L) it.connectedAtMs = System.currentTimeMillis()
             true
         }
@@ -642,6 +821,7 @@ class ForoughTunnelManager(
         sb.appendLine("beast_mode: ${options.enableBeastMode} (${s.beastMode})")
         sb.appendLine("cdn_scan: ${s.cdnScan}")
         sb.appendLine("traffic_status: ${s.trafficStatus} (last probe code $lastTrafficCode)")
+        sb.appendLine("rescue_engine: stage $rescueStage/$rescueMaxStage (badge: ${s.rescueStage})")
         sb.appendLine("proxies: http ${s.httpProxy}, socks ${s.socksProxy}")
         sb.appendLine("routing: VpnService whole-device (tun2socks)")
         sb.appendLine("traffic: down ${NetTools.humanBytes(s.totalDownBytes)} / up ${NetTools.humanBytes(s.totalUpBytes)}")

@@ -50,6 +50,38 @@ val ForoughNavy = Color(0xFF052351)
 val GraphRx = Color(0xFF338CF0)   // desktop draw color rgb(0.20, 0.55, 0.95)
 val GraphTx = Color(0xFF26BF59)   // desktop draw color rgb(0.15, 0.75, 0.35)
 
+// ---------------------------------------------------------------------------
+// v2.4.0 vibrant graphics kit — richer gradients + glow colors used by the
+// custom ForoughIcons, the gradient power button and the aurora backdrop.
+// The base libadwaita surfaces stay (desktop parity); the accents above them
+// get noticeably more chroma.
+// ---------------------------------------------------------------------------
+
+// Gradient endpoint pairs (start -> end). Every icon and glow uses one of
+// these so the whole app shares one coherent chromatic language.
+val GradCyan = Color(0xFF38E1FF)      // electric cyan
+val GradBlue = Color(0xFF3D6BFF)      // royal blue
+val GradViolet = Color(0xFF8B5CF6)    // violet
+val GradMagenta = Color(0xFFE64CC8)   // magenta
+val GradAmber = Color(0xFFFFB13D)     // amber (brand gold's brighter sibling)
+val GradOrange = Color(0xFFFF7A3D)    // orange
+val GradRose = Color(0xFFFF5470)      // rose
+val GradLime = Color(0xFF4CE080)      // lime green
+val GradEmerald = Color(0xFF17C97B)   // emerald
+
+val BrushAccentBlue = Brush.linearGradient(listOf(GradCyan, GradBlue))
+val BrushViolet = Brush.linearGradient(listOf(GradViolet, GradMagenta))
+val BrushGold = Brush.linearGradient(listOf(GradAmber, GradOrange))
+val BrushFire = Brush.linearGradient(listOf(GradOrange, GradRose))
+val BrushGreen = Brush.linearGradient(listOf(GradLime, GradEmerald))
+
+fun accentBrush(state: Int): Brush = when (state) {
+    0 -> BrushGreen    // connected
+    1 -> BrushFire     // connecting/working
+    2 -> BrushGold     // brand/idle highlight
+    else -> BrushAccentBlue
+}
+
 // Vazirmatn font family — Persian + Latin, regular through bold.
 val Vazirmatn = FontFamily(
     androidx.compose.ui.text.font.Font(R.font.vazirmatn_regular, FontWeight.Normal),

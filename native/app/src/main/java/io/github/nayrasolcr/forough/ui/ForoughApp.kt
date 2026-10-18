@@ -22,13 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -237,25 +231,25 @@ fun ForoughApp(
                         Haptics.tap()
                         screen = Screen.SCANNER
                     }) {
-                        Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.scanner_title))
+                        ScanIcon(26.dp, contentDescription = stringResource(R.string.scanner_title))
                     }
                     IconButton(onClick = {
                         Haptics.tap()
                         runSpeedTest()
                     }) {
-                        Icon(Icons.Outlined.Speed, contentDescription = stringResource(R.string.speed_test))
+                        BoltIcon(26.dp, contentDescription = stringResource(R.string.speed_test))
                     }
                     IconButton(onClick = {
                         Haptics.tap()
                         copyDiagnostics()
                     }) {
-                        Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.diagnostics))
+                        PulseIcon(26.dp, contentDescription = stringResource(R.string.diagnostics))
                     }
                     IconButton(onClick = {
                         Haptics.tap()
                         screen = Screen.SETTINGS
                     }) {
-                        Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings))
+                        SlidersIcon(26.dp, contentDescription = stringResource(R.string.settings))
                     }
                     Box {
                         IconButton(onClick = {
@@ -267,7 +261,7 @@ fun ForoughApp(
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.share_title)) },
-                                leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+                                leadingIcon = { ShareNodesIcon(22.dp) },
                                 onClick = {
                                     menuOpen = false
                                     screen = Screen.SHARE
@@ -275,7 +269,7 @@ fun ForoughApp(
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.logs_title)) },
-                                leadingIcon = { Icon(Icons.Outlined.Article, contentDescription = null) },
+                                leadingIcon = { ScrollIcon(22.dp) },
                                 onClick = {
                                     menuOpen = false
                                     screen = Screen.LOGS
@@ -283,6 +277,7 @@ fun ForoughApp(
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.about)) },
+                                leadingIcon = { ShieldBoltIcon(22.dp) },
                                 onClick = {
                                     menuOpen = false
                                     screen = Screen.ABOUT

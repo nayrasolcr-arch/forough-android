@@ -16,6 +16,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -145,6 +146,9 @@ fun SectionCard(
     title: String,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
+    // v2.4.0: gradient glyph override — when provided it replaces the flat
+    // ImageVector with one of the hand-drawn ForoughIcons (glow + gradient).
+    glyph: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
@@ -160,7 +164,9 @@ fun SectionCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 10.dp)
             ) {
-                if (icon != null) {
+                if (glyph != null) {
+                    Box(modifier = Modifier.padding(end = 8.dp)) { glyph() }
+                } else if (icon != null) {
                     Icon(
                         icon, contentDescription = null,
                         tint = ForoughGold,
@@ -222,7 +228,9 @@ fun AuroraBackground(active: Boolean, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val s = glow * 0.16f
+        // v2.4.0: brighter field — the aurora is now clearly visible even
+        // on OLED panels and mid-range screens.
+        val s = glow * 0.22f
         if (s <= 0.002f) return@Canvas
 
         // Field 1 — warm gold, upper third, slow horizontal drift.
@@ -285,6 +293,23 @@ fun AuroraBackground(active: Boolean, modifier: Modifier = Modifier) {
             ),
             radius = w * 0.7f,
             center = c4
+        )
+
+        // Field 5 (v2.4.0) — magenta counter-sweep: adds the fifth chroma
+        // voice so the aurora reads as a full spectrum rather than three
+        // static tints. Still GPU-cheap (one more radial gradient pass).
+        val c5 = Offset(
+            w * (0.62f + 0.22f * sin(phase * 0.97f + 1.7f)),
+            h * (0.30f + 0.08f * sin(phase * 0.63f + 4.4f))
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFFE64CC8).copy(alpha = s * 0.42f), Color.Transparent),
+                center = c5,
+                radius = w * 0.62f
+            ),
+            radius = w * 0.62f,
+            center = c5
         )
     }
 }

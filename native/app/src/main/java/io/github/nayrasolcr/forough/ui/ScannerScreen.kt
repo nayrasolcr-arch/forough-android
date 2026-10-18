@@ -18,8 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -179,7 +177,7 @@ fun ScannerScreen(
             .verticalScroll(rememberScrollState())
     ) {
         // ===================== Scope =====================
-        SectionCard(title = stringResource(R.string.scanner_scope), icon = Icons.Outlined.Radar) {
+        SectionCard(title = stringResource(R.string.scanner_scope), glyph = { ScanIcon(22.dp) }) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 ScopeSwitch(stringResource(R.string.scanner_cloudflare), stringResource(R.string.scanner_cf_desc), scanCf) {
                     scanCf = it

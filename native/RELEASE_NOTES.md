@@ -1,3 +1,27 @@
+# Forough (فروغ) 2.4.0 — Android
+
+**فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet
+
+## What's new in 2.4.0 — the "Rescue Engine + Extreme mode + vivid UI" release
+
+**فارسی:**
+- **موتور نجات (Rescue Engine)**: بر اساس لاگ واقعی شما (۱۷۰۱ تلاش اسکن CDN بی‌پاسخ، صفر تونل موفق، QUIC کاملاً مسدود)، حالت CDN حالا وقتی همهٔ فرونت‌ها بمیرند بی‌نهایت منتظر نمی‌ماند — موتور نجات به‌طور خودکار پله‌پله اوج می‌گیرد: (۱) قطع QUIC و رفتن به پروتکل‌های فقط-TCP، (۲) گسترش به کل مجموعه پروتکل‌ها (همهٔ میک‌ها + Shadowsocks + SSH)، (۳) حالت اکسترم با همهٔ ترنسپورت‌ها و آزادسازی منطقه. هر پله روی صفحه نمایش داده می‌شود و بعد از اولین اتصال موفق، موتور نجات آرام می‌گیرد.
+- **حالت جدید «اکسترم» برای فیلترینگ شدید و قطعی**: همهٔ ترنسپورت‌ها هم‌زمان — میک در همهٔ حالت‌ها (CDN، بدون فرونت، HTTP)، QUIC، Shadowsocks، SSH/OSSH، اسکن CDN و کانالیوت (inproxy). در تنظیمات، انتخاب پروتکل.
+- **فال‌بک در حالت CDN**: حالت CDN Fronting حالا دنبالهٔ فال‌بک دارد؛ اگر همهٔ لبه‌های CDN مرده باشند، هسته می‌تواند با پروتکل‌های جایگزین وصل شود و دیگر «چرخش بی‌پایان» رخ نمی‌دهد.
+- **تاکتیک‌ها دوباره روشن شدند**: پارامترهای تنظیم‌شده از طرف شبکهٔ سایفون (tactics) دوباره فعال‌اند — مکانیزم اصلی تطبیق خودکار با تغییر مسدودسازی‌ها؛ این هم پایداری اتصال و هم سرعت را بالا می‌برد.
+- **ورکرهای بیشتر**: استخر اتصال موازی حالا همیشه اعمال می‌شود — پیش‌فرض ۶۴ و قابل انتخاب تا **۲۵۶ ورکر** (۶۴/۹۶/۱۲۸/۱۹۲/۲۵۶) برای بیشترین فشار اتصال موازی روی شبکه‌های فیلترشده.
+- **گرافیک کاملاً تازه**: مجموعه آیکون‌های اختصاصی گرادیانی دست‌ساز (رادار، برق، نبض، تنظیمات، اشتراک، لاگ، کره، شعله، سپر، نجات) با هالهٔ نوری؛ دکمهٔ پاور با گرادیان زنده (آبی کبود ← سبز زمردی ← آتش نارنجی-رز) + درخشش چرخان؛ حلقهٔ اتصال گرادیانی؛ بج «مرحلهٔ نجات» روی پنل اتصال؛ شفق قطبی پنج‌رنگه و پرنورتر؛ آیکون‌های نوار بالا و کارت‌های بخش همگی گرادیانی شدند.
+
+**English:**
+- **Rescue Engine**: built from your real field log (1,701 unanswered CDN scan attempts, zero tunnels, QUIC fully blocked). CDN mode no longer waits forever when every front dies — the engine auto-escalates: (1) drop QUIC and go TCP-only, (2) expand to the full protocol set (all meek forms + Shadowsocks + SSH), (3) EXTREME — every transport with the region preference released. Each stage is surfaced live in the UI; the ladder disarms on first successful connect.
+- **New "Extreme" mode for heavy filtering / total shutdown**: every transport at once — meek in all forms (CDN, unfronted, HTTP), QUIC, Shadowsocks, SSH/OSSH, the CDN scan, and conduit (inproxy). Selectable in Settings.
+- **CDN mode fallback tail**: CDN Fronting now carries fallback protocols after the CDN set — if every CDN edge is dead, the core can still establish a tunnel instead of spinning.
+- **Tactics re-enabled**: the Psiphon network's remote-tuned parameters (tactics) are active again — the primary auto-adaptation mechanism when blocks shift; improves both connection survival and throughput.
+- **More workers**: the parallel dial pool is now always applied — default 64, selectable up to **256 workers** (64/96/128/192/256) for maximum parallel dial pressure.
+- **Vivid UI refresh**: a hand-drawn gradient icon set with chromatic halos (radar, bolt, pulse, sliders, share, scroll, globe, flame, shield, rescue); the power button is now a living gradient (royal blue → emerald → orange-rose fire) with a rotating sheen; a gradient connection ring; a "rescue stage" badge on the connection panel; a brighter five-field aurora; gradient app-bar and section-card icons throughout.
+
+---
+
 # Forough (فروغ) 2.3.0 — Android
 
 **فروغ؛ پنجره‌ای روشن به اینترنت آزاد** · Forough — a bright window to the open internet

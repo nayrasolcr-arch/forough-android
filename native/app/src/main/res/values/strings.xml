@@ -89,6 +89,10 @@
     <string name="mode_conduit">Conduit</string>
     <string name="mode_direct">Direct</string>
     <string name="mode_cdn">CDN Fronting</string>
+    <string name="mode_extreme">Extreme (heavy filtering)</string>
+    <string name="mode_cdn_hint">Quality-ranked CDN edges with automatic fallback to every other transport if the fronts die.</string>
+    <string name="mode_extreme_hint">Maximum resistance: every transport at once — meek in all forms, Shadowsocks, SSH, QUIC, CDN scan, conduit. For total shutdowns and extreme filtering.</string>
+    <string name="rescue_stage">Rescue stage %1$d/%2$d</string>
     <string name="settings_region">Region</string>
     <string name="region_any">Any</string>
     <string name="settings_beast">Beast mode</string>

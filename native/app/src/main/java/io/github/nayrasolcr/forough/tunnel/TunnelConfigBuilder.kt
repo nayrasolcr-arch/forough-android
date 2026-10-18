@@ -16,6 +16,16 @@ import org.json.JSONObject
  * limiting per mode with the TCP-only self-heal, CDN fronting dial
  * overrides + scan spec (identical edge IP lists), upstream proxy, and OSL
  * root URLs.
+ *
+ * v2.4.0 engine hardening (user log diagnosis — 0 tunnels established,
+ * 1701 CDN scan attempts all dead, QUIC fully blocked):
+ *  - CDN_FRONTING mode now carries a fallback protocol tail so a dead
+ *    fronting network can still establish a tunnel.
+ *  - Tactics stay enabled — the network's remote-tuned parameters are the
+ *    mid-session adaptation mechanism (DisableTactics removed).
+ *  - EXTREME mode: every transport + conduit + CDN scan for total-shutdown
+ *    conditions.
+ *  - ConnectionWorkerPoolSize always applied (>= 64, up to 256).
  */
 object TunnelConfigBuilder {
 
@@ -66,8 +76,29 @@ object TunnelConfigBuilder {
 
     private val CDN_FRONTING_PROTOCOLS = listOf(
         "FRONTED-MEEK-CDN-OSSH", "FRONTED-MEEK-CDN-HTTP-OSSH",
-        "FRONTED-MEEK-CDN-QUIC-OSSH"
+        "FRONTED-MEEK-CDN-QUIC-OSSH",
+        // Fallback tail (v2.4.0 field fix): the user log proved that under
+        // heavy filtering every CDN meek front can die (0/1701 scan
+        // candidates working). A CDN-only protocol set then spins forever
+        // with zero tunnels. These rescue protocols sit AFTER the CDN set —
+        // the core still prefers the quality-ranked CDN edges, but when
+        // they are all dead it can now actually establish something
+        // instead of waiting indefinitely.
+        "UNFRONTED-MEEK-SESSION-TICKET-OSSH", "UNFRONTED-MEEK-HTTPS-OSSH",
+        "UNFRONTED-MEEK-OSSH", "FRONTED-MEEK-OSSH", "FRONTED-MEEK-HTTP-OSSH",
+        "SHADOWSOCKS-OSSH", "TLS-OSSH", "OSSH", "SSH",
+        "QUIC-OSSH", "FRONTED-MEEK-QUIC-OSSH"
     )
+
+    // EXTREME mode (v2.4.0): every transport the core knows — meek in all
+    // forms (CDN-fronted, unfronted, HTTP), QUIC, Shadowsocks, plain
+    // SSH/OSSH — plus the conduit (inproxy/WebRTC) family and the full
+    // rescue tail. This is the "heavy censorship / total shutdown" mode:
+    // maximum protocol diversity, no restrictions. Inproxy candidates that
+    // cannot initialize on a given device simply never win; the rest of
+    // the pool still dials.
+    private val EXTREME_PROTOCOLS: List<String> =
+        (DIRECT_PROTOCOLS + CDN_FRONTING_PROTOCOLS + CONDUIT_PROTOCOLS).distinct()
 
     fun build(options: TunnelOptions): String {
         val root = JSONObject()
@@ -115,12 +146,15 @@ object TunnelConfigBuilder {
         if (options.enableBeastMode) {
             root.put("AggressiveEstablishment", true)
         }
-        // Worker pool: how many candidates are dialed in parallel. The core
-        // raises the pool to at least AggressiveConnectionWorkerPoolSize (64)
-        // in beast mode; honor a user-picked higher value too.
-        if (options.connectionWorkers > 30) {
-            root.put("ConnectionWorkerPoolSize", options.connectionWorkers)
-        }
+        // Worker pool: how many candidates are dialed in parallel. Always
+        // applied now (v2.4.0): previously it was only sent when > 30, so
+        // the effective pool silently depended on the beast-mode default.
+        // 64 is the core's aggressive pool; honor a user-picked higher
+        // value up to 256 for maximum parallel dial pressure. (The core
+        // clamps to its own limits; AggressiveEstablishment raises the
+        // floor to the core's aggressive pool size.)
+        val workers = maxOf(options.connectionWorkers, 64).coerceAtMost(256)
+        root.put("ConnectionWorkerPoolSize", workers)
 
         // Turbo network optimizations — BBR congestion control, 4 MB socket
         // buffers and tuned keepalives on every dial socket (core
@@ -138,13 +172,24 @@ object TunnelConfigBuilder {
             ProtocolMode.CDN_FRONTING -> {
                 root.put("LimitTunnelProtocols",
                     filteredProtocols(CDN_FRONTING_PROTOCOLS, options.tcpOnlyOverride))
-                root.put("DisableTactics", true)
+                // Tactics ON (v2.4.0 field fix): tactics are the Psiphon
+                // network's remote-tuned obfuscation/performance parameters —
+                // the primary adaptation mechanism when blocks shift
+                // mid-session. Disabling them (the old behavior) froze the
+                // client's parameters while the network moved on, and the
+                // user log shows exactly that failure mode. The CDN scan
+                // spec and dial overrides below still take precedence for
+                // CDN-fronted dials.
                 putCdnFrontingConfig(root, options)
             }
             ProtocolMode.DIRECT -> {
                 root.put("LimitTunnelProtocols",
                     filteredProtocols(DIRECT_PROTOCOLS, options.tcpOnlyOverride))
-                root.put("DisableTactics", true)
+                putCdnFrontingConfig(root, options)
+            }
+            ProtocolMode.EXTREME -> {
+                root.put("LimitTunnelProtocols",
+                    filteredProtocols(EXTREME_PROTOCOLS, options.tcpOnlyOverride))
                 putCdnFrontingConfig(root, options)
             }
             ProtocolMode.AUTO -> {
@@ -153,7 +198,8 @@ object TunnelConfigBuilder {
         }
 
         val compartment = options.inproxyCompartmentId.trim()
-        if (options.protocol == ProtocolMode.CONDUIT && compartment.isNotEmpty()) {
+        if (compartment.isNotEmpty() &&
+            (options.protocol == ProtocolMode.CONDUIT || options.protocol == ProtocolMode.EXTREME)) {
             root.put("InproxyClientPersonalCompartmentID", compartment)
         }
 

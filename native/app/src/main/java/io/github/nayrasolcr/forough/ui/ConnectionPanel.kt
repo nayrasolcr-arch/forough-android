@@ -20,6 +20,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,14 +33,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.outlined.Article
-import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -72,11 +65,15 @@ import io.github.nayrasolcr.forough.R
 import io.github.nayrasolcr.forough.net.NetTools
 import io.github.nayrasolcr.forough.tunnel.Region
 import io.github.nayrasolcr.forough.tunnel.TunnelStats
-import io.github.nayrasolcr.forough.ui.theme.AdwAccent
 import io.github.nayrasolcr.forough.ui.theme.AdwAccentGlow
-import io.github.nayrasolcr.forough.ui.theme.AdwDestructive
 import io.github.nayrasolcr.forough.ui.theme.ConnectedGreen
 import io.github.nayrasolcr.forough.ui.theme.ConnectedGreenGlow
+import io.github.nayrasolcr.forough.ui.theme.GradBlue
+import io.github.nayrasolcr.forough.ui.theme.GradCyan
+import io.github.nayrasolcr.forough.ui.theme.GradEmerald
+import io.github.nayrasolcr.forough.ui.theme.GradLime
+import io.github.nayrasolcr.forough.ui.theme.GradOrange
+import io.github.nayrasolcr.forough.ui.theme.GradRose
 import io.github.nayrasolcr.forough.ui.theme.GraphRx
 import io.github.nayrasolcr.forough.ui.theme.GraphTx
 import io.github.nayrasolcr.forough.ui.theme.ForoughGold
@@ -215,6 +212,12 @@ fun ConnectionPanel(
             modifier = Modifier.padding(horizontal = 24.dp)
         )
 
+        // ----- Rescue Engine badge (v2.4.0) — visible proof the engine is
+        // fighting when the first strategy is blocked. Gold = warm urgency.
+        if (connecting && stats.rescueStage != "-") {
+            RescueStageBadge(stats.rescueStage)
+        }
+
         // ----- Live speed cards (appear when the session runs) -----
         androidx.compose.animation.AnimatedVisibility(
             visible = running,
@@ -322,12 +325,23 @@ private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifi
         }
     }
 
+    // v2.4.0: the ring speaks the vibrant gradient language — fire while
+    // establishing (the engine is working), emerald while live.
     val ringColor = when {
         connected -> ConnectedGreen
-        connecting -> AdwAccent
+        connecting -> GradOrange
         else -> MaterialTheme.colorScheme.outlineVariant
     }
-    val glowColor = if (connected) ConnectedGreenGlow else AdwAccentGlow
+    val ringTailColor = when {
+        connected -> GradLime
+        connecting -> GradRose
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
+    val glowColor = when {
+        connected -> ConnectedGreenGlow
+        connecting -> Color(0x4DFF7A3D)
+        else -> AdwAccentGlow
+    }
 
     Canvas(modifier = modifier.graphicsLayer {
         if (!connected && !connecting) {
@@ -375,9 +389,9 @@ private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifi
             )
             drawArc(
                 brush = Brush.sweepGradient(
-                    0f to ringColor.copy(alpha = 0.05f),
-                    0.5f to ringColor.copy(alpha = 0.55f),
-                    1f to ringColor.copy(alpha = 0.05f),
+                    0f to ringTailColor.copy(alpha = 0.05f),
+                    0.5f to ringTailColor.copy(alpha = 0.55f),
+                    1f to ringTailColor.copy(alpha = 0.05f),
                     center = center
                 ),
                 startAngle = sweepAngle2, sweepAngle = 70f, useCenter = false,
@@ -388,7 +402,12 @@ private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifi
             // Steady ring: full when connected, faint when idle.
             val alpha = if (connected) 0.95f else 0.45f
             drawArc(
-                color = ringColor.copy(alpha = alpha),
+                brush = Brush.sweepGradient(
+                    0f to ringColor.copy(alpha = alpha),
+                    0.5f to ringTailColor.copy(alpha = alpha),
+                    1f to ringColor.copy(alpha = alpha),
+                    center = center
+                ),
                 startAngle = 0f, sweepAngle = 360f, useCenter = false,
                 topLeft = topLeft, size = arcSize,
                 style = Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
@@ -443,45 +462,86 @@ private fun PowerButton(
     onConnect: () -> Unit,
     onDisconnect: () -> Unit
 ) {
-    val targetColor = when {
-        connected -> ConnectedGreen
-        running -> AdwDestructive
-        else -> AdwAccent
+    // v2.4.0: the button is now a LIVING GRADIENT, not a solid fill —
+    // connected = emerald→lime, connecting = orange→rose fire, idle =
+    // cyan→royal blue. The brush pivots through an animated blend so the
+    // color never snaps.
+    val targetState = when {
+        connected -> 0
+        running -> 1
+        else -> 2
     }
-    val buttonColor by animateColorAsState(
-        targetValue = targetColor,
+    val colorA by animateColorAsState(
+        targetValue = when (targetState) {
+            0 -> GradEmerald
+            1 -> GradOrange
+            else -> GradCyan
+        },
         animationSpec = tween(420),
-        label = "powerColor"
+        label = "powerGradA"
+    )
+    val colorB by animateColorAsState(
+        targetValue = when (targetState) {
+            0 -> GradLime
+            1 -> GradRose
+            else -> GradBlue
+        },
+        animationSpec = tween(420),
+        label = "powerGradB"
+    )
+    val sheen = rememberInfiniteTransition(label = "powerSheen")
+    val sheenAngle by sheen.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(if (running && !connected) 2600 else 5200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "powerSheenAngle"
     )
     val interaction = remember { MutableInteractionSource() }
     val press = pressScale(interaction, pressedScale = 0.9f)
     // Gentle breathing while connecting — the button is visibly "working".
     val breathe = if (running && !connected) breathingPulse(target = 1.045f) else 1f
 
-    Button(
-        onClick = {
-            if (running) {
-                Haptics.confirm()
-                onDisconnect()
-            } else {
-                Haptics.confirm()
-                onConnect()
-            }
-        },
-        shape = CircleShape,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = buttonColor,
-            contentColor = Color.White
-        ),
-        interactionSource = interaction,
+    Box(
         modifier = Modifier
             .size(132.dp)
             .graphicsLayer {
                 scaleX = press * breathe
                 scaleY = press * breathe
-                shadowElevation = if (running) 16f else 8f
+                shadowElevation = if (running) 18f else 10f
+                shape = CircleShape
+                clip = false
+            }
+            .clip(CircleShape)
+            .background(
+                Brush.linearGradient(
+                    listOf(colorA, colorB),
+                    end = Offset(1f, 1f)
+                )
+            )
+            .clickable(
+                interactionSource = interaction,
+                indication = null
+            ) {
+                Haptics.confirm()
+                if (running) onDisconnect() else onConnect()
             }
     ) {
+        // Rotating sheen: a soft white sweep that keeps the disc alive.
+        Canvas(modifier = Modifier.matchParentSize()) {
+            drawArc(
+                brush = Brush.sweepGradient(
+                    0f to Color.Transparent,
+                    0.18f to Color.White.copy(alpha = 0.28f),
+                    0.36f to Color.Transparent,
+                    1f to Color.Transparent,
+                    center = center
+                ),
+                startAngle = sheenAngle, sweepAngle = 360f, useCenter = false
+            )
+        }
         AnimatedContent(
             targetState = running,
             transitionSpec = {
@@ -490,13 +550,19 @@ private fun PowerButton(
             },
             label = "powerIcon"
         ) { isRunning ->
-            Icon(
-                imageVector = Icons.Filled.PowerSettingsNew,
-                contentDescription = if (isRunning) {
-                    stringResource(R.string.disconnect)
-                } else stringResource(R.string.connect),
-                modifier = Modifier.size(52.dp)
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                PowerBoltIcon(
+                    size = 56.dp,
+                    tint = if (isRunning) Color.White else null
+                )
+                Text(
+                    text = if (isRunning) {
+                        stringResource(R.string.disconnect)
+                    } else stringResource(R.string.connect),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
         }
     }
 }
@@ -624,25 +690,25 @@ private fun QuickActionsRow(
             .padding(horizontal = 4.dp)
     ) {
         QuickAction(
-            icon = Icons.Outlined.Speed,
+            icon = { BoltIcon(24.dp) },
             label = stringResource(R.string.quick_speed),
             onClick = onSpeedTest,
             modifier = Modifier.weight(1f)
         )
         QuickAction(
-            icon = Icons.Filled.Info,
+            icon = { PulseIcon(24.dp) },
             label = stringResource(R.string.quick_diag),
             onClick = onDiagnostics,
             modifier = Modifier.weight(1f)
         )
         QuickAction(
-            icon = Icons.Outlined.Article,
+            icon = { ScrollIcon(24.dp) },
             label = stringResource(R.string.quick_logs),
             onClick = onLogs,
             modifier = Modifier.weight(1f)
         )
         QuickAction(
-            icon = Icons.Filled.Info,
+            icon = { InfoOrbIcon(24.dp) },
             label = stringResource(R.string.quick_about),
             onClick = onAbout,
             modifier = Modifier.weight(1f)
@@ -652,7 +718,7 @@ private fun QuickActionsRow(
 
 @Composable
 private fun QuickAction(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: @Composable () -> Unit,
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -679,12 +745,49 @@ private fun QuickAction(
                 .fillMaxWidth()
                 .padding(vertical = 10.dp)
         ) {
-            Icon(icon, contentDescription = label, tint = ForoughGold,
-                modifier = Modifier.size(20.dp))
+            Box(modifier = Modifier.size(24.dp)) { icon() }
             Text(
                 label,
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------
+// Rescue Engine badge (v2.4.0)
+// ---------------------------------------------------------------------
+
+@Composable
+private fun RescueStageBadge(stage: String) {
+    val shimmer = rememberInfiniteTransition(label = "rescueShimmer")
+    val phase by shimmer.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "rescuePhase"
+    )
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.graphicsLayer {
+            alpha = 0.86f + 0.14f * phase
+        }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+        ) {
+            RescueIcon(16.dp)
+            Spacer(Modifier.size(6.dp))
+            Text(
+                text = stage,
+                style = MaterialTheme.typography.labelMedium,
+                color = ForoughGold
             )
         }
     }

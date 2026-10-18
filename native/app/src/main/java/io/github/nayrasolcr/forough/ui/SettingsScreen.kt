@@ -7,10 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Bolt
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.outlined.VpnKey
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +33,7 @@ import io.github.nayrasolcr.forough.tunnel.ProtocolMode
 import io.github.nayrasolcr.forough.tunnel.Region
 import io.github.nayrasolcr.forough.tunnel.SettingsStore
 import io.github.nayrasolcr.forough.tunnel.TunnelOptions
+import io.github.nayrasolcr.forough.ui.theme.ForoughGold
 
 /**
  * SettingsScreen — Android port of the desktop SettingsDialog plus the
@@ -80,7 +77,7 @@ fun SettingsScreen(
         // ===================== Connection =====================
         SectionCard(
             title = stringResource(R.string.settings_connection),
-            icon = Icons.Outlined.VpnKey
+            glyph = { ShieldBoltIcon(22.dp) }
         ) {
             Text(
                 stringResource(R.string.settings_connection_desc),
@@ -95,13 +92,15 @@ fun SettingsScreen(
                     ProtocolMode.AUTO -> stringResource(R.string.mode_auto)
                     ProtocolMode.CONDUIT -> stringResource(R.string.mode_conduit)
                     ProtocolMode.DIRECT -> stringResource(R.string.mode_direct)
+                    ProtocolMode.EXTREME -> stringResource(R.string.mode_extreme)
                     ProtocolMode.CDN_FRONTING -> stringResource(R.string.mode_cdn)
                 },
                 items = listOf(
                     stringResource(R.string.mode_auto),
                     stringResource(R.string.mode_conduit),
                     stringResource(R.string.mode_direct),
-                    stringResource(R.string.mode_cdn)
+                    stringResource(R.string.mode_cdn),
+                    stringResource(R.string.mode_extreme)
                 )
             ) { index ->
                 options = options.copy(
@@ -109,10 +108,27 @@ fun SettingsScreen(
                         1 -> ProtocolMode.CONDUIT
                         2 -> ProtocolMode.DIRECT
                         3 -> ProtocolMode.CDN_FRONTING
+                        4 -> ProtocolMode.EXTREME
                         else -> ProtocolMode.AUTO
                     }
                 )
             }
+            // Mode hint: each protocol mode gets one plain-language line so
+            // the power features are discoverable (v2.4.0).
+            Text(
+                text = when (options.protocol) {
+                    ProtocolMode.EXTREME -> stringResource(R.string.mode_extreme_hint)
+                    ProtocolMode.CDN_FRONTING -> stringResource(R.string.mode_cdn_hint)
+                    else -> ""
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = if (options.protocol == ProtocolMode.EXTREME) {
+                    ForoughGold
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
 
             val regionLabel = if (options.region.isBlank()) {
                 stringResource(R.string.region_any)
@@ -139,7 +155,9 @@ fun SettingsScreen(
             ) { options = options.copy(enableBeastMode = it) }
 
             // ----- Connection workers (parallel dial pool) -----
-            val workerValues = listOf(48, 64, 96, 128)
+            // v2.4.0: pool raised — 64 default, up to 256 workers for
+            // maximum parallel dial pressure on censored networks.
+            val workerValues = listOf(64, 96, 128, 192, 256)
             DropdownRow(
                 label = stringResource(R.string.settings_workers),
                 value = stringResource(
@@ -189,7 +207,7 @@ fun SettingsScreen(
         // ===================== Power features =====================
         SectionCard(
             title = stringResource(R.string.settings_power),
-            icon = Icons.Outlined.Bolt
+            glyph = { BoltIcon(22.dp) }
         ) {
             Text(
                 stringResource(R.string.settings_power_desc),
@@ -323,7 +341,7 @@ fun SettingsScreen(
         }
 
         // ===================== Advanced =====================
-        SectionCard(title = stringResource(R.string.settings_advanced), icon = Icons.Outlined.Tune) {
+        SectionCard(title = stringResource(R.string.settings_advanced), glyph = { SlidersIcon(22.dp) }) {
             TextFieldRow(
                 stringResource(R.string.settings_upstream),
                 stringResource(R.string.settings_upstream_hint),

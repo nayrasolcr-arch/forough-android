@@ -8,7 +8,11 @@ enum class ProtocolMode(val configValue: String) {
     AUTO("auto"),
     CONDUIT("conduit"),
     DIRECT("direct"),
-    CDN_FRONTING("cdn_fronting");
+    CDN_FRONTING("cdn_fronting"),
+    // v2.4.0: maximum-resistance mode for total shutdown / extreme
+    // filtering — every transport (meek in all forms, QUIC, Shadowsocks,
+    // SSH/OSSH, CDN scan) plus inproxy conduit when a compartment is set.
+    EXTREME("extreme");
 
     companion object {
         // CDN fronting is the Forough default everywhere (desktop + Android):
@@ -89,5 +93,11 @@ data class TunnelOptions(
     // plus the package list the filter applies to. Applied when the VPN
     // interface is established (VpnManager).
     val splitTunnelMode: String = SettingsStore.SPLIT_OFF,
-    val splitTunnelPackages: List<String> = emptyList()
+    val splitTunnelPackages: List<String> = emptyList(),
+    // Rescue Engine stage (v2.4.0) — internal, never persisted. 0 = the
+    // user's chosen mode untouched; 1 = TCP-only self-heal (QUIC blocked);
+    // 2 = full protocol set; 3 = extreme all-transport rescue. The
+    // ForoughTunnelManager escalates through these stages when no tunnel
+    // establishes, and the UI surfaces the stage as live feedback.
+    val rescueStage: Int = 0
 )

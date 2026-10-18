@@ -31,7 +31,11 @@ data class TunnelStats(
     val beastMode: String = "-",
     val cdnScan: String = "-",
     // End-to-end traffic probe: "-" | "checking" | "ok" | "failed".
-    val trafficStatus: String = "-"
+    val trafficStatus: String = "-",
+    // Rescue Engine (v2.4.0): live escalation-stage feedback while no
+    // tunnel establishes. "-" = inactive; otherwise a stage label like
+    // "1/3 — tcp only". Cleared on connect.
+    val rescueStage: String = "-"
 ) {
     /** Mutable accumulator mirroring how the desktop NoticeParser mutates stats in place. */
     class Mutable(base: TunnelStats) {
@@ -58,13 +62,14 @@ data class TunnelStats(
         var beastMode: String = base.beastMode
         var cdnScan: String = base.cdnScan
         var trafficStatus: String = base.trafficStatus
+        var rescueStage: String = base.rescueStage
 
         fun build(): TunnelStats = TunnelStats(
             protocol, status, httpProxy, socksProxy, tunnelCount, clientRegion,
             egressRegion, downstreamBps, upstreamBps, totalDownBytes, totalUpBytes,
             diagnosticId, tunnelProtocol, availableRegions, startedAtMs, uptimeMs,
             connectedAtMs, connectDurationMs, publicIp, routingStatus, beastMode,
-            cdnScan, trafficStatus
+            cdnScan, trafficStatus, rescueStage
         )
     }
 

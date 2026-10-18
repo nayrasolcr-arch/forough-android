@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -72,7 +69,7 @@ fun ShareScreen(store: SettingsStore, onToast: (String) -> Unit) {
             .verticalScroll(rememberScrollState())
     ) {
         // ===================== Switch =====================
-        SectionCard(title = stringResource(R.string.share_title), icon = Icons.Outlined.Share) {
+        SectionCard(title = stringResource(R.string.share_title), glyph = { ShareNodesIcon(22.dp) }) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -99,7 +96,7 @@ fun ShareScreen(store: SettingsStore, onToast: (String) -> Unit) {
         }
 
         // ===================== Endpoints =====================
-        SectionCard(title = stringResource(R.string.share_endpoints), icon = Icons.Outlined.Wifi) {
+        SectionCard(title = stringResource(R.string.share_endpoints), glyph = { GlobeIcon(22.dp) }) {
             if (share) {
                 if (primary == null) {
                     Text(
