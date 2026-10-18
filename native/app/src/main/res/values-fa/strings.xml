@@ -10,8 +10,25 @@
     <string name="status_reconnecting">در حال اتصال مجدد…</string>
     <string name="status_disconnecting">در حال قطع اتصال…</string>
     <string name="status_connected_in">متصل شد در %1$.1f ثانیه</string>
+    <string name="status_connected">متصل</string>
+    <string name="status_trying_hint">هنوز در تلاشیم — کمی صبر کنید. اگر طولانی شد، حالت یا منطقهٔ دیگری را امتحان کنید.</string>
+    <string name="connected_toast">متصل شد — اینترنت آزاد برای شما</string>
+    <string name="disconnected_toast">اتصال قطع شد</string>
+
+    <!-- سرعت زنده -->
+    <string name="speed_down">دانلود</string>
+    <string name="speed_up">آپلود</string>
+    <string name="session_total">ترافیک جلسه</string>
+    <string name="graph_title">ترافیک زنده — ۶۰ ثانیهٔ گذشته</string>
+
+    <!-- اقدامات سریع -->
+    <string name="quick_speed">تست سرعت</string>
+    <string name="quick_diag">عیب‌یابی</string>
+    <string name="quick_logs">لاگ‌ها</string>
+    <string name="quick_about">درباره</string>
 
     <!-- پنل آمار -->
+    <string name="stats_title">جزئیات جلسه</string>
     <string name="stats_status">وضعیت</string>
     <string name="stats_protocol">پروتکل</string>
     <string name="stats_tunnel">تونل</string>
@@ -85,6 +102,34 @@
     <string name="settings_advanced">پیشرفته</string>
     <string name="settings_osl">آدرس‌های لیست سرور OSL</string>
     <string name="settings_osl_desc">آدرس‌های ریشهٔ لیست سرورهای مبهم‌شده؛ برای لیست استاندارد خالی بگذارید</string>
+
+    <!-- قابلیت‌های تقویتی -->
+    <string name="settings_power">قابلیت‌های تقویتی</string>
+    <string name="settings_power_desc">امکاناتی که تونل را پایدارتر و کار با آن را راحت‌تر می‌کند.</string>
+    <string name="settings_auto_connect">اتصال خودکار هنگام باز شدن</string>
+    <string name="settings_auto_connect_desc">به‌محض باز کردن فروغ، تونل شروع شود</string>
+    <string name="settings_haptics">بازخورد لرزشی</string>
+    <string name="settings_haptics_desc">لرزش هنگام اتصال، قطع و لمس دکمه‌ها</string>
+    <string name="settings_split_tunnel">تقسیم تونل (Split Tunneling)</string>
+    <string name="split_mode_off">همهٔ برنامه‌ها از VPN عبور کنند</string>
+    <string name="split_mode_allow">فقط برنامه‌های انتخابی از VPN عبور کنند</string>
+    <string name="split_mode_exclude">برنامه‌های انتخابی از VPN خارج بمانند</string>
+    <string name="settings_split_pick">انتخاب برنامه‌ها…</string>
+    <string name="split_summary_fmt">%1$d برنامه انتخاب شده</string>
+    <string name="apps_title">انتخاب برنامه‌ها</string>
+    <string name="apps_search_hint">جستجوی برنامه‌ها…</string>
+    <string name="apps_select_all">انتخاب همه</string>
+    <string name="apps_clear">پاک کردن</string>
+    <string name="apps_save">ذخیرهٔ انتخاب‌ها</string>
+    <string name="apps_saved_fmt">%1$d برنامه ذخیره شد — در اتصال بعدی اعمال می‌شود</string>
+    <string name="apps_loading">در حال بارگذاری برنامه‌ها…</string>
+    <string name="settings_battery">بهینه‌سازی باتری</string>
+    <string name="settings_battery_desc">از اندروید بخواهید فروغ را در پس‌زمینه زنده نگه دارد (برای شیائومی، سامسونگ و هوآوی توصیه می‌شود)</string>
+    <string name="settings_battery_ok">از قبل مستثنی شده است</string>
+    <string name="settings_alwayson">همیشه‌روشن و کلید قطعی (Kill Switch)</string>
+    <string name="settings_alwayson_desc">تنظیمات VPN اندروید را باز کن تا «Always-on» و «قطع اینترنت بدون VPN» را فعال کنید</string>
+    <string name="settings_tile_hint">نکته: کاشی فروغ را به Quick Settings اضافه کنید تا از سایه‌نوار وصل و قطع کنید.</string>
+
     <string name="settings_interface">رابط کاربری</string>
     <string name="settings_language">زبان</string>
     <string name="lang_system">سیستم</string>
@@ -92,11 +137,13 @@
     <string name="lang_en">انگلیسی</string>
     <string name="settings_save">ذخیره</string>
     <string name="settings_saved">تنظیمات ذخیره شد</string>
-    <string name="settings_note">تغییرات در اتصال بعدی اعمال می‌شوند. تغییر زبان بلافاصله اعمال می‌شود.</string>
+    <string name="settings_note">تغییرات اتصال در اتصال بعدی اعمال می‌شوند. تغییر زبان و ظاهر بلافاصله اعمال می‌شود.</string>
 
     <!-- لاگ / درباره / ابزارها -->
     <string name="logs_title">لاگ‌های تونل</string>
     <string name="logs_empty">هنوز لاگی نیست. برای پر شدن این صفحه متصل شوید.</string>
+    <string name="logs_copy">کپی لاگ‌ها</string>
+    <string name="logs_copied">لاگ‌ها کپی شد</string>
     <string name="about">درباره</string>
     <string name="about_tagline">فروغ؛ پنجره‌ای روشن به اینترنت آزاد</string>
     <string name="about_body">فروغ کلاینت VPN سریع و زیبا برای اینترنت آزاد است — ساخته‌شده روی شبکهٔ سایفون، با رابط بومی اندروید، پشتیبانی کامل راست‌به‌چپ فارسی، اسکنر دستی لبه‌های CDN، نمودار زندهٔ ترافیک، تست سرعت داخلی و ری‌استارت خودکار تونل. پروژه‌ای غیررسمی و وابسته به Psiphon Inc. نیست. بیشتر در psiphon.ca.</string>
@@ -107,6 +154,7 @@
     <string name="speed_test">اجرای تست سرعت</string>
     <string name="speed_test_running">تست سرعت در حال اجراست — اعداد در لاگ و گزارش عیب‌یابی ثبت می‌شوند</string>
     <string name="speed_test_unavailable">اول وصل شوید، بعد تست سرعت را اجرا کنید</string>
+    <string name="speed_test_done_fmt">تست سرعت تمام شد — گزارش کامل در صفحهٔ لاگ‌ها</string>
     <string name="cdn_edges_updated">لبه‌های CDN به‌روز شد</string>
     <string name="menu_more">بیشتر</string>
     <string name="back">بازگشت</string>

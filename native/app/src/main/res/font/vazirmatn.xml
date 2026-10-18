@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Vazirmatn — the Forough UI font family (Persian + Latin).
+  Copyright 2015 The Vazirmatn Project Authors — SIL Open Font License 1.1.
+-->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <font android:fontWeight="400" android:fontStyle="normal"
+        android:font="@font/vazirmatn_regular" app:font="@font/vazirmatn_regular" />
+    <font android:fontWeight="500" android:fontStyle="normal"
+        android:font="@font/vazirmatn_medium" app:font="@font/vazirmatn_medium" />
+    <font android:fontWeight="600" android:fontStyle="normal"
+        android:font="@font/vazirmatn_semibold" app:font="@font/vazirmatn_semibold" />
+    <font android:fontWeight="700" android:fontStyle="normal"
+        android:font="@font/vazirmatn_bold" app:font="@font/vazirmatn_bold" />
+</font-family>

@@ -2,44 +2,61 @@ package io.github.nayrasolcr.forough.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.VpnKey
-import androidx.compose.material.icons.outlined.PortableWifiOff
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.outlined.Article
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -52,133 +69,111 @@ import io.github.nayrasolcr.forough.net.NetTools
 import io.github.nayrasolcr.forough.tunnel.Region
 import io.github.nayrasolcr.forough.tunnel.TunnelStats
 import io.github.nayrasolcr.forough.ui.theme.AdwAccent
+import io.github.nayrasolcr.forough.ui.theme.AdwAccentGlow
 import io.github.nayrasolcr.forough.ui.theme.AdwDestructive
+import io.github.nayrasolcr.forough.ui.theme.ConnectedGreen
+import io.github.nayrasolcr.forough.ui.theme.ConnectedGreenGlow
 import io.github.nayrasolcr.forough.ui.theme.GraphRx
 import io.github.nayrasolcr.forough.ui.theme.GraphTx
+import io.github.nayrasolcr.forough.ui.theme.ForoughGold
 import kotlinx.coroutines.delay
+import kotlin.math.ceil
 
 /**
- * ConnectionPanel — Android port of the desktop widget of the same name:
- * the 96px circular connect button (suggested blue → destructive red),
- * status title, IP line with flag, routing line, and the live 60-second
- * traffic graph drawn as two filled sparklines with identical colors.
+ * ConnectionPanel — the hero of the main screen, Android counterpart of the
+ * desktop widget of the same name. A 132dp power button wrapped in a live
+ * status ring (sweeping arc while connecting, calm green glow while
+ * connected), springy press physics, haptics, animated speed cards and the
+ * 60-second traffic graph — all driven by springs, no hard state swaps.
  */
 @Composable
 fun ConnectionPanel(
     stats: TunnelStats,
     running: Boolean,
     onConnect: () -> Unit,
-    onDisconnect: () -> Unit
+    onDisconnect: () -> Unit,
+    onSpeedTest: () -> Unit,
+    onDiagnostics: () -> Unit,
+    onLogs: () -> Unit,
+    onAbout: () -> Unit
 ) {
     val window = 60
     val rxHistory = remember { mutableStateListOf<Double>().apply { repeat(window) { add(0.0) } } }
     val txHistory = remember { mutableStateListOf<Double>().apply { repeat(window) { add(0.0) } } }
-    var lastRx by remember { mutableStateOf(0L) }
-    var lastTx by remember { mutableStateOf(0L) }
+    var lastRx by remember { mutableLongStateOf(0L) }
+    var lastTx by remember { mutableLongStateOf(0L) }
     var haveLast by remember { mutableStateOf(false) }
-    var trafficLabel by remember { mutableStateOf("") }
+    var downSpeed by remember { mutableLongStateOf(0L) }
+    var upSpeed by remember { mutableLongStateOf(0L) }
 
-    // Sample once per second while running — same cadence as the desktop.
-    // Reads live values from the state bus so the 1s loop never works with
-    // a stale captured stats object.
+    val connected = running && stats.status == "connected"
+    val connecting = running && !connected
+
+    // Sample twice per second — smoother than the desktop's 1s cadence so
+    // the speed numbers and graph feel live. Deltas are EMA-smoothed to
+    // keep the digits from flickering between samples.
     LaunchedEffect(running) {
         if (!running) {
             haveLast = false
-            trafficLabel = ""
+            downSpeed = 0
+            upSpeed = 0
             for (i in 0 until window) {
                 rxHistory[i] = 0.0
                 txHistory[i] = 0.0
             }
             return@LaunchedEffect
         }
+        var emaDown = 0.0
+        var emaUp = 0.0
         while (true) {
             val current = ForoughBus.stats.value
             val rx = current.totalDownBytes
             val tx = current.totalUpBytes
             if (haveLast) {
-                val down = (rx - lastRx).coerceAtLeast(0).toDouble()
-                val up = (tx - lastTx).coerceAtLeast(0).toDouble()
-                pushSample(rxHistory, down)
-                pushSample(txHistory, up)
-                trafficLabel = "↓ ${NetTools.humanSpeed(down.toLong())}/s   ↑ ${NetTools.humanSpeed(up.toLong())}/s"
+                val rawDown = (rx - lastRx).coerceAtLeast(0) * 2.0   // per second
+                val rawUp = (tx - lastTx).coerceAtLeast(0) * 2.0
+                emaDown = if (emaDown == 0.0) rawDown else emaDown * 0.55 + rawDown * 0.45
+                emaUp = if (emaUp == 0.0) rawUp else emaUp * 0.55 + rawUp * 0.45
+                downSpeed = emaDown.toLong()
+                upSpeed = emaUp.toLong()
+                pushSample(rxHistory, emaDown)
+                pushSample(txHistory, emaUp)
             }
             lastRx = rx
             lastTx = tx
             haveLast = true
-            delay(1_000)
+            delay(500)
         }
     }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp)
+            .padding(vertical = 10.dp)
     ) {
-        // Circular connect button — 96dp like the desktop, suggested-action
-        // blue when idle, destructive-action red when running. The color and
-        // press-scale animate smoothly, and a soft pulse breathes while the
-        // tunnel is establishing — the "alive" feel the desktop has.
-        val targetColor = when {
-            !running -> AdwAccent
-            stats.status == "connected" -> AdwDestructive
-            else -> AdwDestructive
-        }
-        val buttonColor by animateColorAsState(
-            targetValue = targetColor,
-            animationSpec = tween(350),
-            label = "connectButtonColor"
-        )
-        val interaction = remember { MutableInteractionSource() }
-        val pressed by interaction.collectIsPressedAsState()
-        val pressScale by animateFloatAsState(
-            targetValue = if (pressed) 0.92f else 1f,
-            animationSpec = tween(150),
-            label = "connectPressScale"
-        )
-        val connecting = running && stats.status != "connected"
-        val pulse = rememberInfiniteTransition(label = "connectPulse")
-        val pulseScale by pulse.animateFloat(
-            initialValue = 1f,
-            targetValue = if (connecting) 1.06f else 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(900),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "connectPulseScale"
-        )
-
-        Button(
-            onClick = { if (running) onDisconnect() else onConnect() },
-            shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = buttonColor,
-                contentColor = Color.White
-            ),
-            interactionSource = interaction,
-            modifier = Modifier
-                .size(96.dp)
-                .graphicsLayer {
-                    scaleX = pressScale * pulseScale
-                    scaleY = pressScale * pulseScale
-                }
-        ) {
-            Icon(
-                imageVector = if (running) Icons.Outlined.PortableWifiOff else Icons.Filled.VpnKey,
-                contentDescription = if (running) {
-                    stringResource(R.string.disconnect)
-                } else stringResource(R.string.connect),
-                modifier = Modifier.size(36.dp)
+        // ----- Hero: status ring + power button -----
+        Box(contentAlignment = Alignment.Center) {
+            StatusRing(
+                connected = connected,
+                connecting = connecting,
+                modifier = Modifier.size(172.dp)
+            )
+            PowerButton(
+                running = running,
+                connected = connected,
+                onConnect = onConnect,
+                onDisconnect = onDisconnect
             )
         }
 
-        // Status label cross-fades between states instead of hard-swapping.
+        // ----- Status label + region/IP line -----
         AnimatedContent(
             targetState = statusLabel(stats, running),
             transitionSpec = {
-                (fadeIn(tween(200)))
-                    .togetherWith(fadeOut(tween(150)))
+                (fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 3 })
+                    .togetherWith(fadeOut(tween(150)) + slideOutVertically(tween(180)) { -it / 4 })
             },
             label = "statusLabel"
         ) { label ->
@@ -189,63 +184,427 @@ fun ConnectionPanel(
             )
         }
 
-        Text(
-            text = ipLabel(stats),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
+        val ipLine = ipLabel(stats)
+        if (ipLine.isNotEmpty()) {
+            AnimatedContent(
+                targetState = ipLine,
+                transitionSpec = { fadeIn(tween(240)).togetherWith(fadeOut(tween(160))) },
+                label = "ipLine"
+            ) { line ->
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
 
         Text(
-            text = if (running) stats.routingStatus else "",
+            text = if (connecting) stringResource(R.string.status_trying_hint) else "",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp)
         )
 
-        Text(
-            text = trafficLabel,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // ----- Live speed cards (appear when the session runs) -----
+        androidx.compose.animation.AnimatedVisibility(
+            visible = running,
+            enter = fadeIn(tween(300)) + slideInVertically(tween(360)) { it / 4 },
+            exit = fadeOut(tween(200)) + slideOutVertically(tween(240)) { -it / 4 }
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp)
+            ) {
+                SpeedCard(
+                    label = stringResource(R.string.speed_down),
+                    speedBps = downSpeed,
+                    color = GraphRx,
+                    icon = "↓",
+                    modifier = Modifier.weight(1f)
+                )
+                SpeedCard(
+                    label = stringResource(R.string.speed_up),
+                    speedBps = upSpeed,
+                    color = GraphTx,
+                    icon = "↑",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
 
+        // ----- Live traffic graph -----
         TrafficGraph(rxHistory.toList(), txHistory.toList())
+
+        Text(
+            text = stringResource(R.string.graph_title),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
+
+        // ----- Quick actions -----
+        QuickActionsRow(
+            onSpeedTest = onSpeedTest,
+            onDiagnostics = onDiagnostics,
+            onLogs = onLogs,
+            onAbout = onAbout
+        )
+    }
+}
+
+// ---------------------------------------------------------------------
+// Status ring
+// ---------------------------------------------------------------------
+
+@Composable
+private fun StatusRing(connected: Boolean, connecting: Boolean, modifier: Modifier) {
+    // Rotating sweep while the tunnel establishes.
+    val sweep = rememberInfiniteTransition(label = "ringSweep")
+    val sweepAngle by sweep.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sweepAngle"
+    )
+    // Breathing glow while idle.
+    val idlePulse = breathingPulse(target = 0.86f, periodMs = 1200)
+    val ringColor = when {
+        connected -> ConnectedGreen
+        connecting -> AdwAccent
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
+    val glowColor = if (connected) ConnectedGreenGlow else AdwAccentGlow
+
+    Canvas(modifier = modifier.graphicsLayer {
+        if (!connected && !connecting) {
+            scaleX = idlePulse
+            scaleY = idlePulse
+        }
+    }) {
+        val stroke = 5.dp.toPx()
+        val diameter = size.minDimension - stroke * 2
+        val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
+        val topLeft = Offset(
+            (size.width - diameter) / 2f,
+            (size.height - diameter) / 2f
+        )
+
+        // Soft outer glow — two layered translucent circles.
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(glowColor, Color.Transparent),
+                center = center,
+                radius = size.minDimension / 2f
+            ),
+            radius = size.minDimension / 2f
+        )
+
+        if (connecting) {
+            // Track + rotating gradient arc — "working on it".
+            drawArc(
+                color = ringColor.copy(alpha = 0.18f),
+                startAngle = 0f, sweepAngle = 360f, useCenter = false,
+                topLeft = topLeft, size = arcSize,
+                style = Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            )
+            drawArc(
+                brush = Brush.sweepGradient(
+                    0f to ringColor.copy(alpha = 0f),
+                    0.6f to ringColor,
+                    1f to ringColor.copy(alpha = 0f),
+                    center = center
+                ),
+                startAngle = sweepAngle, sweepAngle = 130f, useCenter = false,
+                topLeft = topLeft, size = arcSize,
+                style = Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            )
+        } else {
+            // Steady ring: full when connected, faint when idle.
+            val alpha = if (connected) 0.95f else 0.45f
+            drawArc(
+                color = ringColor.copy(alpha = alpha),
+                startAngle = 0f, sweepAngle = 360f, useCenter = false,
+                topLeft = topLeft, size = arcSize,
+                style = Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------
+// Power button
+// ---------------------------------------------------------------------
+
+@Composable
+private fun PowerButton(
+    running: Boolean,
+    connected: Boolean,
+    onConnect: () -> Unit,
+    onDisconnect: () -> Unit
+) {
+    val targetColor = when {
+        connected -> ConnectedGreen
+        running -> AdwDestructive
+        else -> AdwAccent
+    }
+    val buttonColor by animateColorAsState(
+        targetValue = targetColor,
+        animationSpec = tween(420),
+        label = "powerColor"
+    )
+    val interaction = remember { MutableInteractionSource() }
+    val press = pressScale(interaction, pressedScale = 0.9f)
+    // Gentle breathing while connecting — the button is visibly "working".
+    val breathe = if (running && !connected) breathingPulse(target = 1.045f) else 1f
+
+    Button(
+        onClick = {
+            if (running) {
+                Haptics.confirm()
+                onDisconnect()
+            } else {
+                Haptics.confirm()
+                onConnect()
+            }
+        },
+        shape = CircleShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = buttonColor,
+            contentColor = Color.White
+        ),
+        interactionSource = interaction,
+        modifier = Modifier
+            .size(132.dp)
+            .graphicsLayer {
+                scaleX = press * breathe
+                scaleY = press * breathe
+                shadowElevation = if (running) 16f else 8f
+            }
+    ) {
+        AnimatedContent(
+            targetState = running,
+            transitionSpec = {
+                (fadeIn(tween(200)) + slideInVertically(tween(260)) { it / 3 })
+                    .togetherWith(fadeOut(tween(140)) + slideOutVertically(tween(200)) { -it / 3 })
+            },
+            label = "powerIcon"
+        ) { isRunning ->
+            Icon(
+                imageVector = Icons.Filled.PowerSettingsNew,
+                contentDescription = if (isRunning) {
+                    stringResource(R.string.disconnect)
+                } else stringResource(R.string.connect),
+                modifier = Modifier.size(52.dp)
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------
+// Speed cards
+// ---------------------------------------------------------------------
+
+@Composable
+private fun SpeedCard(
+    label: String,
+    speedBps: Long,
+    color: Color,
+    icon: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(icon, color = color, style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.size(4.dp))
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            // Digits slide up on change — the "odometer" feel.
+            AnimatedContent(
+                targetState = NetTools.humanSpeed(speedBps),
+                transitionSpec = {
+                    (fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 2 })
+                        .togetherWith(fadeOut(tween(120)) + slideOutVertically(tween(160)) { -it / 2 })
+                },
+                label = "speedValue"
+            ) { value ->
+                Text(
+                    text = value + "/s",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = color
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------
+// Quick actions row
+// ---------------------------------------------------------------------
+
+@Composable
+private fun QuickActionsRow(
+    onSpeedTest: () -> Unit,
+    onDiagnostics: () -> Unit,
+    onLogs: () -> Unit,
+    onAbout: () -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp)
+    ) {
+        QuickAction(
+            icon = Icons.Outlined.Speed,
+            label = stringResource(R.string.quick_speed),
+            onClick = onSpeedTest,
+            modifier = Modifier.weight(1f)
+        )
+        QuickAction(
+            icon = Icons.Filled.Info,
+            label = stringResource(R.string.quick_diag),
+            onClick = onDiagnostics,
+            modifier = Modifier.weight(1f)
+        )
+        QuickAction(
+            icon = Icons.Outlined.Article,
+            label = stringResource(R.string.quick_logs),
+            onClick = onLogs,
+            modifier = Modifier.weight(1f)
+        )
+        QuickAction(
+            icon = Icons.Filled.Info,
+            label = stringResource(R.string.quick_about),
+            onClick = onAbout,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
 @Composable
-private fun TrafficGraph(rxHistory: List<Double>, txHistory: List<Double>) {
-    Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            .padding(horizontal = 12.dp)
+private fun QuickAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val press = pressScale(interaction, 0.92f)
+    Surface(
+        onClick = {
+            Haptics.tap()
+            onClick()
+        },
+        interactionSource = interaction,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier.graphicsLayer {
+            scaleX = press
+            scaleY = press
+        }
     ) {
-        // Background like the desktop graph (grey 12%).
-        drawRect(Color(0x80, 0x80, 0x80, 31))
-        drawSeries(rxHistory, GraphRx)
-        drawSeries(txHistory, GraphTx)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp)
+        ) {
+            Icon(icon, contentDescription = label, tint = ForoughGold,
+                modifier = Modifier.size(20.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1
+            )
+        }
     }
 }
 
+// ---------------------------------------------------------------------
+// Traffic graph
+// ---------------------------------------------------------------------
+
+@Composable
+private fun TrafficGraph(rxHistory: List<Double>, txHistory: List<Double>) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp)
+    ) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(88.dp)
+                .padding(8.dp)
+        ) {
+            drawRect(Color(0x80, 0x80, 0x80, 26))
+            drawSeries(rxHistory, GraphRx)
+            drawSeries(txHistory, GraphTx)
+        }
+    }
+}
+
+/** Smooth filled sparkline — cubic segments through sample midpoints. */
 private fun DrawScope.drawSeries(history: List<Double>, color: Color) {
-    if (history.isEmpty()) return
-    var max = 1.0
+    if (history.size < 2) return
+    var max = 1024.0 * 8.0   // keep small idle values readable
     for (v in history) if (v > max) max = v
 
     val step = size.width / (history.size - 1)
-    val path = Path()
-    path.moveTo(0f, size.height)
-    for (i in history.indices) {
-        val y = (size.height - ((history[i] / max) * (size.height - 4)).toFloat() - 2f)
+    fun yOf(v: Double): Float =
+        (size.height - ((v / max) * (size.height - 6)).toFloat() - 3f)
             .coerceIn(0f, size.height)
-        path.lineTo(i * step, y)
-    }
-    path.lineTo(size.width, size.height)
-    path.close()
 
-    drawPath(path, color.copy(alpha = 0.35f))
-    drawPath(path, color.copy(alpha = 0.95f), style = Stroke(width = 1.5.dp.toPx()))
+    val line = Path()
+    line.moveTo(0f, yOf(history[0]))
+    for (i in 1 until history.size) {
+        val x0 = (i - 1) * step
+        val x1 = i * step
+        val midX = (x0 + x1) / 2f
+        val y0 = yOf(history[i - 1])
+        val y1 = yOf(history[i])
+        line.cubicTo(midX, y0, midX, y1, x1, y1)
+    }
+
+    // Fill under the line.
+    val fill = Path().apply {
+        addPath(line)
+        lineTo(size.width, size.height)
+        lineTo(0f, size.height)
+        close()
+    }
+    drawPath(
+        fill,
+        brush = Brush.verticalGradient(
+            0f to color.copy(alpha = 0.32f),
+            1f to color.copy(alpha = 0.04f)
+        )
+    )
+    drawPath(line, color.copy(alpha = 0.95f), style = Stroke(2.dp.toPx()))
 }
 
 private fun pushSample(history: MutableList<Double>, value: Double) {
@@ -257,7 +616,7 @@ private fun pushSample(history: MutableList<Double>, value: Double) {
 
 @Composable
 private fun statusLabel(stats: TunnelStats, running: Boolean): String {
-    if (!running) return stringResource(R.string.status_ready)
+    if (!running && stats.status != "disconnecting") return stringResource(R.string.status_ready)
     return when (stats.status) {
         "connected" -> stringResource(R.string.status_connected_in, stats.connectDurationMs / 1000.0)
         "connecting" -> stringResource(R.string.status_connecting)

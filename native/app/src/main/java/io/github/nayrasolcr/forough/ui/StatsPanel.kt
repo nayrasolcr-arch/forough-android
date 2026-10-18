@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,12 +21,15 @@ import androidx.compose.ui.unit.dp
 import io.github.nayrasolcr.forough.R
 import io.github.nayrasolcr.forough.net.NetTools
 import io.github.nayrasolcr.forough.tunnel.TunnelStats
+import io.github.nayrasolcr.forough.ui.theme.GraphRx
+import io.github.nayrasolcr.forough.ui.theme.GraphTx
 import kotlinx.coroutines.delay
 
 /**
  * StatsPanel — Android port of the desktop stats panel: the same rows
  * (Status, Protocol, Tunnel, Uptime, Proxies, Regions, Public IP, Routing,
- * Beast mode, CDN scan, Traffic) with the same live values.
+ * Beast mode, CDN scan, Traffic) with the same live values, wrapped in the
+ * shared section-card chrome.
  */
 @Composable
 fun StatsPanel(stats: TunnelStats, running: Boolean) {
@@ -41,49 +43,44 @@ fun StatsPanel(stats: TunnelStats, running: Boolean) {
         }
     }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            val uptime = if (stats.startedAtMs > 0 && running) {
-                uptimeTick - stats.startedAtMs
-            } else 0L
+    SectionCard(title = stringResource(R.string.stats_title)) {
+        val uptime = if (stats.startedAtMs > 0 && running) {
+            uptimeTick - stats.startedAtMs
+        } else 0L
 
-            StatsRow(stringResource(R.string.stats_status), humanStatus(stats.status, running))
-            Divider()
-            StatsRow(
-                stringResource(R.string.stats_protocol),
-                if (stats.tunnelProtocol != "-") stats.tunnelProtocol else stats.protocol
-            )
-            Divider()
-            StatsRow(stringResource(R.string.stats_tunnel), stats.tunnelCount.toString())
-            Divider()
-            StatsRow(stringResource(R.string.stats_uptime), humanUptime(uptime))
-            Divider()
-            StatsRow(
-                stringResource(R.string.stats_proxies),
-                "${stats.httpProxy} · ${stats.socksProxy}"
-            )
-            Divider()
-            StatsRow(
-                stringResource(R.string.stats_regions),
-                "${stats.egressRegion} (${stats.availableRegions})"
-            )
-            Divider()
-            StatsRow(stringResource(R.string.stats_public_ip), stats.publicIp)
-            Divider()
-            StatsRow(
-                stringResource(R.string.stats_routing),
-                if (running) (stats.routingStatus.ifEmpty { "-" }) else "-"
-            )
-            Divider()
-            StatsRow(stringResource(R.string.stats_beast), stats.beastMode)
-            Divider()
-            StatsRow(stringResource(R.string.stats_cdn_scan), stats.cdnScan)
-            Divider()
-            StatsRow(
-                stringResource(R.string.stats_traffic),
-                trafficValue(stats, running)
-            )
-        }
+        StatsRow(stringResource(R.string.stats_status), humanStatus(stats.status, running))
+        Divider()
+        StatsRow(
+            stringResource(R.string.stats_protocol),
+            if (stats.tunnelProtocol != "-") stats.tunnelProtocol else stats.protocol
+        )
+        Divider()
+        StatsRow(stringResource(R.string.stats_tunnel), stats.tunnelCount.toString())
+        Divider()
+        StatsRow(stringResource(R.string.stats_uptime), humanUptime(uptime))
+        Divider()
+        StatsRow(
+            stringResource(R.string.stats_proxies),
+            "${stats.httpProxy} · ${stats.socksProxy}"
+        )
+        Divider()
+        StatsRow(
+            stringResource(R.string.stats_regions),
+            "${stats.egressRegion} (${stats.availableRegions})"
+        )
+        Divider()
+        StatsRow(stringResource(R.string.stats_public_ip), stats.publicIp)
+        Divider()
+        StatsRow(
+            stringResource(R.string.stats_routing),
+            if (running) (stats.routingStatus.ifEmpty { "-" }) else "-"
+        )
+        Divider()
+        StatsRow(stringResource(R.string.stats_beast), stats.beastMode)
+        Divider()
+        StatsRow(stringResource(R.string.stats_cdn_scan), stats.cdnScan)
+        Divider()
+        TrafficRow(stats, running)
     }
 }
 
@@ -110,28 +107,49 @@ private fun StatsRow(label: String, value: String) {
 }
 
 @Composable
+private fun TrafficRow(stats: TunnelStats, running: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.stats_traffic),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(0.38f)
+        )
+        Column {
+            Text(
+                text = "↓ ${NetTools.humanBytes(stats.totalDownBytes)} · ↑ ${NetTools.humanBytes(stats.totalUpBytes)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace
+            )
+            if (running && stats.status == "connected") {
+                Text(
+                    text = "↓ ${NetTools.humanSpeed(stats.downstreamBps)}/s · ↑ ${NetTools.humanSpeed(stats.upstreamBps)}/s",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun Divider() {
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 private fun humanStatus(status: String, running: Boolean): String = when {
-    !running -> "disconnected"
+    !running && status != "disconnecting" -> "disconnected"
     status == "connected" -> "connected"
     status == "connecting" -> "connecting"
     status == "reconnecting" -> "reconnecting"
+    status == "disconnecting" -> "disconnecting"
     status == "exiting" -> "exiting"
     else -> status
-}
-
-/**
- * Totals plus the live measured rates while the tunnel is up — the traffic
- * row now answers "is data actually flowing?" at a glance.
- */
-private fun trafficValue(stats: TunnelStats, running: Boolean): String {
-    val totals = "↓ ${NetTools.humanBytes(stats.totalDownBytes)} · ↑ ${NetTools.humanBytes(stats.totalUpBytes)}"
-    if (!running || stats.status != "connected") return totals
-    val rate = "↓ ${NetTools.humanSpeed(stats.downstreamBps)}/s · ↑ ${NetTools.humanSpeed(stats.upstreamBps)}/s"
-    return "$totals\n$rate"
 }
 
 private fun humanUptime(ms: Long): String {

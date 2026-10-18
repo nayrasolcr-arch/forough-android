@@ -38,6 +38,12 @@ class ForoughTunnelManager(
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val executor: ExecutorService = Executors.newCachedThreadPool()
+    // ALL engine lifecycle operations (start / teardown / auto-restart) run
+    // serialized on this single thread — a fast disconnect→connect tap can
+    // never make start and teardown race each other on the same manager.
+    private val lifecycleExecutor: ExecutorService = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "forough-lifecycle")
+    }
     private val vpnManager = VpnManager.getInstance()
     private val parserState = NoticeParser.ParserState()
 
@@ -114,6 +120,7 @@ class ForoughTunnelManager(
         try {
             vpnManager.registerHostService(builderProvider)
             vpnManager.setShareProxyOnNetwork(options.enableLan)
+            vpnManager.setSplitTunnelFilter(options.splitTunnelMode, options.splitTunnelPackages)
             vpnManager.vpnEstablish()
 
             val newTunnel = PsiphonTunnel.newPsiphonTunnel(this)
@@ -126,6 +133,115 @@ class ForoughTunnelManager(
             appendLog("start failed: ${e.message}")
             ForoughBus.setToast("connect failed: ${e.message}")
             stop()
+        }
+    }
+
+    /**
+     * Non-blocking start request — the service calls this so the heavy
+     * engine bring-up (vpnEstablish, startTunneling) never runs on the main
+     * thread, and so start serializes with stop/auto-restart on the single
+     * lifecycle thread.
+     */
+    fun startAsync(options: TunnelOptions) {
+        lifecycleExecutor.execute {
+            try {
+                start(options)
+            } catch (e: Exception) {
+                appendLog("start error: ${e.message}")
+                ForoughBus.publishRunning(false)
+            }
+        }
+    }
+
+    /**
+     * Fast, non-blocking stop request — the fix for the "disconnect button
+     * freezes" symptom. The heavy teardown (tun2socks terminate joins its
+     * native loop, tunnel.stop() joins engine threads) used to run on the
+     * MAIN thread inside the service; on slow devices that blocked the UI
+     * for seconds and felt like the button was stuck.
+     *
+     * Sequence:
+     *   1. immediately flip the UI to disconnected (button unlocks at once)
+     *   2. run the heavy teardown on the lifecycle thread (serialized with
+     *      start — a fast disconnect→connect tap can never race)
+     *   3. invoke onDone on the main thread when it is safe to stopSelf()
+     */
+    fun requestStop(onDone: () -> Unit) {
+        if (!running && tunnel == null && !ForoughBus.running.value) {
+            // Nothing alive — honour the callback anyway so the service can
+            // still finish its stop flow.
+            mainHandler.post(onDone)
+            return
+        }
+        // 1. Instant UI unlock: running=false first so the button flips to
+        // "connect" the same frame the user taps it, then the honest
+        // "disconnecting" status keeps the notification truthful while the
+        // teardown finishes in the background.
+        running = false
+        stopping = true
+        cancelTrafficCheck()
+        cancelPerfProbe()
+        mutate {
+            it.status = "disconnecting"
+            true
+        }
+        publish()
+        ForoughBus.publishRunning(false)
+        appendLog("disconnecting — stopping the tunnel…")
+
+        // 2. Heavy teardown on the lifecycle thread (serialized with start).
+        lifecycleExecutor.execute {
+            try {
+                teardownHeavy()
+            } catch (e: Exception) {
+                appendLog("teardown error: ${e.message}")
+            }
+            mainHandler.post {
+                // Finalize state regardless of teardown outcome.
+                synchronized(this) {
+                    tunnel = null
+                    vpnManager.unregisterHostService()
+                    EngineBridge.manager = null
+                    stats = TunnelStats.from(stats) {
+                        it.status = "disconnected"
+                        it.tunnelCount = 0
+                        it.tunnelProtocol = "-"
+                        it.beastMode = "-"
+                        it.cdnScan = "-"
+                        it.trafficStatus = "-"
+                        it.routingStatus = "-"
+                        it.downstreamBps = 0
+                        it.upstreamBps = 0
+                        it.uptimeMs = 0
+                        it.connectedAtMs = 0
+                        it.connectDurationMs = 0
+                    }
+                    publish()
+                }
+                appendLog("tunnel stopped")
+                // 3. Service can now stopSelf() safely.
+                onDone()
+            }
+        }
+    }
+
+    /**
+     * The blocking half of a stop: tun2socks termination, engine stop and
+     * VPN teardown. Only ever call from a background thread — this can take
+     * seconds on slow devices (native joins).
+     */
+    private fun teardownHeavy() {
+        try {
+            vpnManager.stopRouteThroughTunnel()
+        } catch (_: Exception) {
+        }
+        try {
+            tunnel?.stop()
+        } catch (_: Exception) {
+        }
+        try {
+            vpnManager.vpnTeardown()
+        } catch (_: Exception) {
         }
     }
 
@@ -143,18 +259,7 @@ class ForoughTunnelManager(
         cancelTrafficCheck()
         cancelPerfProbe()
 
-        try {
-            vpnManager.stopRouteThroughTunnel()
-        } catch (_: Exception) {
-        }
-        try {
-            tunnel?.stop()
-        } catch (_: Exception) {
-        }
-        try {
-            vpnManager.vpnTeardown()
-        } catch (_: Exception) {
-        }
+        teardownHeavy()
         tunnel = null
         vpnManager.unregisterHostService()
         EngineBridge.manager = null
@@ -196,7 +301,8 @@ class ForoughTunnelManager(
         }
         publish()
 
-        executor.execute {
+        // Serialized with start/stop on the lifecycle thread.
+        lifecycleExecutor.execute {
             try {
                 vpnManager.stopRouteThroughTunnel()
                 tunnel?.stop()
@@ -332,6 +438,9 @@ class ForoughTunnelManager(
         // Fill the Public IP row through the tunnel (desktop IpService parity).
         fetchPublicIp()
     }
+
+    /** Unix ms when the current session's tunnel connected (notification chronometer). */
+    fun connectedAtMs(): Long = stats.connectedAtMs
 
     override fun onAvailableEgressRegions(regions: MutableList<String>?) {
         mutate {
@@ -492,6 +601,11 @@ class ForoughTunnelManager(
             if (!perfProbeDone) perfProbeDone = true
             lastPerfReport = ttfb.report() + "\n" + speed.report()
             appendLog(lastPerfReport)
+            if (manual) {
+                // Surface the headline number directly in the UI so the tap
+                // on "speed test" always produces a visible, immediate answer.
+                ForoughBus.setToast(speed.report())
+            }
         }
     }
 
@@ -517,7 +631,7 @@ class ForoughTunnelManager(
         val s = stats
         val sb = StringBuilder()
         sb.appendLine("Forough Android diagnostics ($trigger)")
-        sb.appendLine("version: 2.0.1")
+        sb.appendLine("version: ${io.github.nayrasolcr.forough.BuildConfig.VERSION_NAME}")
         sb.appendLine("engine: psiphon-tunnel-core (Forough fork, quality-ranked CDN edges)")
         sb.appendLine("status: ${s.status}")
         sb.appendLine("protocol: ${s.tunnelProtocol}")

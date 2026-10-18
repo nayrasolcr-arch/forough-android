@@ -373,8 +373,8 @@ jobs:
 
       - name: Prepare release assets
         run: |
-          mv app-release.apk Forough-2.0.2-android.apk
-          SHA256=$(sha256sum "Forough-2.0.2-android.apk" | cut -d' ' -f1)
+          mv app-release.apk Forough-2.1.0-android.apk
+          SHA256=$(sha256sum "Forough-2.1.0-android.apk" | cut -d' ' -f1)
           {
             cat native/RELEASE_NOTES.md
             echo
@@ -389,11 +389,11 @@ jobs:
       - name: Create release
         run: |
           # Idempotent: recreate the version tag/release on re-runs.
-          gh release delete "v2.0.2" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "v2.0.2" \
-            "Forough-2.0.2-android.apk" \
+          gh release delete "v2.1.0" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "v2.1.0" \
+            "Forough-2.1.0-android.apk" \
             --repo "${{ github.repository }}" \
-            --title "Forough (فروغ) 2.0.2 — Android" \
+            --title "Forough (فروغ) 2.1.0 — Android" \
             --notes-file release-notes.md \
             --latest
         env:

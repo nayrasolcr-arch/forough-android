@@ -33,12 +33,14 @@
 - **کانالیوت (in-proxy)** با شناسهٔ بخش شخصی برای جفت‌سازی خصوصی
 - **بازجوی خودکار ترافیک** — بررسی دوره‌ای عبور واقعی ترافیک از تونل و ری‌استارت خودکار تونل مرده (همان سیاست دسکتاپ)
 - **گزارش عیب‌یابی** — کپی یک‌ضربه‌ای همه‌چیز برای گزارش مشکل
+- **انیمیشن روان همه‌جا** — حلقهٔ وضعیت زندهٔ اتصال، فیزیک فنری دکمه‌ها، شمارنده‌های سرعت متحرک و گذار نرم بین صفحه‌ها؛ با فونت **وزیرمتن** برای فارسی خوش‌خوان
+- **قابلیت‌های تقویتی** — تقسیم تونل (انتخاب برنامه‌ها با جستجو)، کاشی Quick Settings، اتصال خودکار هنگام باز شدن، استثنا از بهینه‌سازی باتری، میان‌بر Always-on/Kill Switch و بازخورد لرزشی
 - بدون تبلیغ، بدون صفحهٔ حامی مالی؛ رایگان و متن‌باز
 
 ### نصب
 
 1. به بخش [Releases](https://github.com/nayrasolcr-arch/forough-android/releases) بروید.
-2. فایل `Forough-2.0.1-android.apk` را دانلود کنید.
+2. فایل `Forough-2.1.0-android.apk` را دانلود کنید.
 3. نصب را تأیید کنید («نصب از منابع ناشناس» را برای فایل‌منیجر خود فعال کنید).
 4. اولین اتصال، مجوز VPN اندروید را می‌خواهد — تأیید کنید و دکمهٔ اتصال را بزنید.
 
@@ -82,11 +84,13 @@ gradle -p native assembleRelease
 - **In-proxy (conduit)** with a personal compartment ID for private pairing
 - **Automatic traffic probe** — periodic end-to-end checks and auto-restart for dead tunnels (the desktop policy)
 - **Diagnostics report** — one-tap copy for bug reports
+- **Fluid motion everywhere** — live connection status ring, spring-physics buttons, animated speed counters, smooth screen transitions, and the **Vazirmatn** typeface for beautiful Persian text
+- **Power features** — split tunneling (searchable app picker), a Quick Settings tile, auto-connect on launch, battery-optimization exemption, an Always-on VPN / kill-switch shortcut, and optional haptic feedback
 - No ads, no sponsor pages; free and open source
 
 ### Install
 
-1. Grab `Forough-2.0.1-android.apk` from [Releases](https://github.com/nayrasolcr-arch/forough-android/releases).
+1. Grab `Forough-2.1.0-android.apk` from [Releases](https://github.com/nayrasolcr-arch/forough-android/releases).
 2. Install it (allow "install unknown apps" for your file manager).
 3. Approve the Android VPN prompt on first connect and hit the connect button.
 

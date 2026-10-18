@@ -6,18 +6,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -79,225 +80,239 @@ fun ScannerScreen(store: SettingsStore, onToast: (String) -> Unit) {
     }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(vertical = 8.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text(stringResource(R.string.scanner_title), style = MaterialTheme.typography.titleLarge)
-        Text(
-            stringResource(R.string.scanner_scope),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // ===================== Scope =====================
+        SectionCard(title = stringResource(R.string.scanner_scope), icon = Icons.Outlined.Radar) {
+            ScopeSwitch(stringResource(R.string.scanner_cloudflare), stringResource(R.string.scanner_cf_desc), scanCf) {
+                scanCf = it
+                store.scanCloudflare = it
+            }
+            ScopeSwitch(stringResource(R.string.scanner_fastly), stringResource(R.string.scanner_fastly_desc), scanFastly) {
+                scanFastly = it
+                store.scanFastly = it
+            }
+            ScopeSwitch(stringResource(R.string.scanner_akamai), stringResource(R.string.scanner_akamai_desc), scanAkamai) {
+                scanAkamai = it
+                store.scanAkamai = it
+            }
+            ScopeSwitch(stringResource(R.string.scanner_cloudfront), stringResource(R.string.scanner_cloudfront_desc), scanCloudfront) {
+                scanCloudfront = it
+                store.scanCloudfront = it
+            }
+            ScopeSwitch(stringResource(R.string.scanner_bunny), stringResource(R.string.scanner_bunny_desc), scanBunny) {
+                scanBunny = it
+                store.scanBunny = it
+            }
 
-        ScopeSwitch(stringResource(R.string.scanner_cloudflare), stringResource(R.string.scanner_cf_desc), scanCf) {
-            scanCf = it
-            store.scanCloudflare = it
-        }
-        ScopeSwitch(stringResource(R.string.scanner_fastly), stringResource(R.string.scanner_fastly_desc), scanFastly) {
-            scanFastly = it
-            store.scanFastly = it
-        }
-        ScopeSwitch(stringResource(R.string.scanner_akamai), stringResource(R.string.scanner_akamai_desc), scanAkamai) {
-            scanAkamai = it
-            store.scanAkamai = it
-        }
-        ScopeSwitch(stringResource(R.string.scanner_cloudfront), stringResource(R.string.scanner_cloudfront_desc), scanCloudfront) {
-            scanCloudfront = it
-            store.scanCloudfront = it
-        }
-        ScopeSwitch(stringResource(R.string.scanner_bunny), stringResource(R.string.scanner_bunny_desc), scanBunny) {
-            scanBunny = it
-            store.scanBunny = it
-        }
+            Stepper(stringResource(R.string.scanner_sample_size), stringResource(R.string.scanner_sample_desc), sampleCount, 128, 4096, 128) {
+                sampleCount = it
+                store.scanSampleCount = it
+            }
+            Stepper(stringResource(R.string.scanner_concurrency), stringResource(R.string.scanner_conc_desc), concurrency, 16, 256, 16) {
+                concurrency = it
+                store.scanConcurrency = it
+            }
 
-        Stepper(stringResource(R.string.scanner_sample_size), stringResource(R.string.scanner_sample_desc), sampleCount, 128, 4096, 128) {
-            sampleCount = it
-            store.scanSampleCount = it
-        }
-        Stepper(stringResource(R.string.scanner_concurrency), stringResource(R.string.scanner_conc_desc), concurrency, 16, 256, 16) {
-            concurrency = it
-            store.scanConcurrency = it
-        }
+            OutlinedTextField(
+                value = customCidrs,
+                onValueChange = {
+                    customCidrs = it
+                    store.scanCustomCidrs = it
+                },
+                label = { Text(stringResource(R.string.scanner_custom_ranges)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+            )
+            OutlinedTextField(
+                value = customSnis,
+                onValueChange = {
+                    customSnis = it
+                    store.scanCustomSnis = it
+                },
+                label = { Text(stringResource(R.string.scanner_custom_sni)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+            )
 
-        OutlinedTextField(
-            value = customCidrs,
-            onValueChange = {
-                customCidrs = it
-                store.scanCustomCidrs = it
-            },
-            label = { Text(stringResource(R.string.scanner_custom_ranges)) },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = customSnis,
-            onValueChange = {
-                customSnis = it
-                store.scanCustomSnis = it
-            },
-            label = { Text(stringResource(R.string.scanner_custom_sni)) },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = {
-                    results.clear()
-                    checked.clear()
-                    checkedCount = 0
-                    progress = 0f
-                    aliveCount = 0
-                    totalCount = 0
-                    scanner.scanCloudflare = scanCf
-                    scanner.scanFastly = scanFastly
-                    scanner.scanAkamai = scanAkamai
-                    scanner.scanCloudfront = scanCloudfront
-                    scanner.scanBunny = scanBunny
-                    scanner.customCidrs = customCidrs
-                    scanner.customSnis = customSnis
-                    scanner.sampleCount = sampleCount
-                    scanner.concurrency = concurrency
-                    try {
-                        scanner.start(object : CdnScanner.Listener {
-                            override fun onProgress(scanned: Int, total: Int, alive: Int) {
-                                progress = if (total > 0) scanned.toFloat() / total else 0f
-                                aliveCount = alive
-                                totalCount = total
-                            }
-
-                            override fun onResult(result: CdnScanner.Result) {
-                                results.add(result)
-                                if (result.alive) {
-                                    checked.add(result.ip)
-                                    checkedCount = checked.size
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = {
+                        Haptics.confirm()
+                        results.clear()
+                        checked.clear()
+                        checkedCount = 0
+                        progress = 0f
+                        aliveCount = 0
+                        totalCount = 0
+                        scanner.scanCloudflare = scanCf
+                        scanner.scanFastly = scanFastly
+                        scanner.scanAkamai = scanAkamai
+                        scanner.scanCloudfront = scanCloudfront
+                        scanner.scanBunny = scanBunny
+                        scanner.customCidrs = customCidrs
+                        scanner.customSnis = customSnis
+                        scanner.sampleCount = sampleCount
+                        scanner.concurrency = concurrency
+                        try {
+                            scanner.start(object : CdnScanner.Listener {
+                                override fun onProgress(scanned: Int, total: Int, alive: Int) {
+                                    progress = if (total > 0) scanned.toFloat() / total else 0f
+                                    aliveCount = alive
+                                    totalCount = total
                                 }
-                            }
 
-                            override fun onFinished(alive: Int, total: Int) {
-                                isRunning = false
-                                aliveCount = alive
-                                totalCount = total
-                                onToast(String.format(scanFinishedFmt, alive, total))
-                            }
-                        })
-                        isRunning = true
-                    } catch (e: Exception) {
-                        onToast(e.message ?: "scan error")
-                    }
-                },
-                enabled = !isRunning
-            ) {
-                Text(stringResource(R.string.scanner_start))
-            }
-            OutlinedButton(
-                onClick = {
-                    scanner.stop()
-                    isRunning = false
-                    onToast(scanStoppedText)
-                },
-                enabled = isRunning,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text(stringResource(R.string.scanner_stop))
-            }
-        }
+                                override fun onResult(result: CdnScanner.Result) {
+                                    results.add(result)
+                                    if (result.alive) {
+                                        checked.add(result.ip)
+                                        checkedCount = checked.size
+                                    }
+                                }
 
-        if (isRunning || totalCount > 0) {
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text(
-                text = "${stringResource(R.string.scanner_alive)}: $aliveCount / $totalCount",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = {
-                    // Same as the desktop ips_applied: selected IPs become the
-                    // CDN fronting IP candidates; when the SNI pool is empty the
-                    // checked SNIs are stored too.
-                    val ips = checked.toList()
-                    if (ips.isEmpty()) {
-                        onToast(selectNeededText)
-                        return@Button
-                    }
-                    val snis = results
-                        .filter { it.ip in checked.toSet() }
-                        .map { it.sni }
-                        .distinct()
-                        .joinToString(" ")
-                    val current = store.load()
-                    store.save(
-                        current.copy(
-                            cdnFrontingIpList = ips.joinToString(" "),
-                            cdnFrontingSni = if (current.cdnFrontingSni.isBlank()) snis else current.cdnFrontingSni
-                        )
-                    )
-                    onToast(String.format(edgesAppliedFmt, ips.size))
-                },
-                enabled = checkedCount > 0
-            ) {
-                Text(stringResource(R.string.scanner_use_selected))
+                                override fun onFinished(alive: Int, total: Int) {
+                                    isRunning = false
+                                    aliveCount = alive
+                                    totalCount = total
+                                    onToast(String.format(scanFinishedFmt, alive, total))
+                                }
+                            })
+                            isRunning = true
+                        } catch (e: Exception) {
+                            onToast(e.message ?: "scan error")
+                        }
+                    },
+                    enabled = !isRunning
+                ) {
+                    Text(stringResource(R.string.scanner_start))
+                }
+                OutlinedButton(
+                    onClick = {
+                        Haptics.tap()
+                        scanner.stop()
+                        isRunning = false
+                        onToast(scanStoppedText)
+                    },
+                    enabled = isRunning,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(R.string.scanner_stop))
+                }
             }
-            OutlinedButton(onClick = {
-                checked.clear()
-                results.filter { it.alive }.forEach { checked.add(it.ip) }
-                checkedCount = checked.size
-            }) {
-                Text(stringResource(R.string.scanner_select_all))
+
+            if (isRunning || totalCount > 0) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                )
+                Text(
+                    text = "${stringResource(R.string.scanner_alive)}: $aliveCount / $totalCount",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
 
-        Text(
-            text = stringResource(R.string.scanner_selected_fmt, checkedCount),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Card {
-            Column {
-                // Most recent results on top; capped like the desktop (300 rows).
-                val shown = results.takeLast(300).reversed()
-                if (shown.isEmpty()) {
-                    Text(
-                        stringResource(R.string.scanner_no_results),
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    shown.forEach { result ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                        ) {
-                            Checkbox(
-                                checked = result.ip in checked.toSet(),
-                                onCheckedChange = { c ->
-                                    if (c) checked.add(result.ip) else checked.remove(result.ip)
-                                    checkedCount = checked.size
-                                },
-                                enabled = result.alive
+        // ===================== Results =====================
+        SectionCard(title = stringResource(R.string.scanner_title)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = {
+                        Haptics.confirm()
+                        // Same as the desktop ips_applied: selected IPs become
+                        // the CDN fronting IP candidates; when the SNI pool is
+                        // empty the checked SNIs are stored too.
+                        val ips = checked.toList()
+                        if (ips.isEmpty()) {
+                            onToast(selectNeededText)
+                            return@Button
+                        }
+                        val snis = results
+                            .filter { it.ip in checked.toSet() }
+                            .map { it.sni }
+                            .distinct()
+                            .joinToString(" ")
+                        val current = store.load()
+                        store.save(
+                            current.copy(
+                                cdnFrontingIpList = ips.joinToString(" "),
+                                cdnFrontingSni = if (current.cdnFrontingSni.isBlank()) snis else current.cdnFrontingSni
                             )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(result.ip, fontFamily = FontFamily.Monospace)
-                                Text(
-                                    "${result.sni} · ${if (result.alive) {
-                                        "TCP ${result.tcpMs}ms + TLS ${result.tlsMs}ms"
-                                    } else if (result.tcpOnly) {
-                                        stringResource(R.string.tls_failed)
-                                    } else {
-                                        "no route"
-                                    }}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        onToast(String.format(edgesAppliedFmt, ips.size))
+                    },
+                    enabled = checkedCount > 0
+                ) {
+                    Text(stringResource(R.string.scanner_use_selected))
+                }
+                OutlinedButton(onClick = {
+                    Haptics.tap()
+                    checked.clear()
+                    results.filter { it.alive }.forEach { checked.add(it.ip) }
+                    checkedCount = checked.size
+                }) {
+                    Text(stringResource(R.string.scanner_select_all))
+                }
+            }
+
+            Text(
+                text = stringResource(R.string.scanner_selected_fmt, checkedCount),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    // Most recent results on top; capped like the desktop (300 rows).
+                    val shown = results.takeLast(300).reversed()
+                    if (shown.isEmpty()) {
+                        Text(
+                            stringResource(R.string.scanner_no_results),
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        shown.forEach { result ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Checkbox(
+                                    checked = result.ip in checked.toSet(),
+                                    onCheckedChange = { c ->
+                                        if (c) checked.add(result.ip) else checked.remove(result.ip)
+                                        checkedCount = checked.size
+                                    },
+                                    enabled = result.alive
                                 )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(result.ip, fontFamily = FontFamily.Monospace)
+                                    Text(
+                                        "${result.sni} · ${if (result.alive) {
+                                            "TCP ${result.tcpMs}ms + TLS ${result.tlsMs}ms"
+                                        } else if (result.tcpOnly) {
+                                            stringResource(R.string.tls_failed)
+                                        } else {
+                                            "no route"
+                                        }}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
@@ -318,7 +333,10 @@ private fun ScopeSwitch(title: String, subtitle: String, checked: Boolean, onCha
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Switch(checked = checked, onCheckedChange = onChange)
+        Switch(checked = checked, onCheckedChange = {
+            Haptics.tap()
+            onChange(it)
+        })
     }
 }
 
@@ -342,7 +360,7 @@ private fun Stepper(
             )
         }
         OutlinedButton(
-            onClick = { onChange((value - step).coerceAtLeast(min)) },
+            onClick = { Haptics.tap(); onChange((value - step).coerceAtLeast(min)) },
             modifier = Modifier.widthIn(min = 8.dp)
         ) { Text("-") }
         Text(
@@ -351,7 +369,7 @@ private fun Stepper(
             style = MaterialTheme.typography.titleMedium
         )
         OutlinedButton(
-            onClick = { onChange((value + step).coerceAtMost(max)) }
+            onClick = { Haptics.tap(); onChange((value + step).coerceAtMost(max)) }
         ) { Text("+") }
     }
 }

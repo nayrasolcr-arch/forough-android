@@ -75,5 +75,10 @@ data class TunnelOptions(
     val oslUrls: String = "",
     // Set on the final automatic restart: strip QUIC protocols (self-heal
     // for throttled-QUIC networks — same policy as the desktop client).
-    val tcpOnlyOverride: Boolean = false
+    val tcpOnlyOverride: Boolean = false,
+    // Split tunneling (Android power feature): "off" | "allow" | "exclude"
+    // plus the package list the filter applies to. Applied when the VPN
+    // interface is established (VpnManager).
+    val splitTunnelMode: String = SettingsStore.SPLIT_OFF,
+    val splitTunnelPackages: List<String> = emptyList()
 )

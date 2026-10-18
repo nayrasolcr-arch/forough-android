@@ -18,6 +18,33 @@ class SettingsStore(context: Context) {
         get() = prefs.getString(KEY_LANGUAGE, "system") ?: "system"
         set(value) = prefs.edit().putString(KEY_LANGUAGE, value).apply()
 
+    /** Start the tunnel as soon as the app opens (power feature). */
+    var autoConnect: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_CONNECT, false)
+        set(value) = prefs.edit().putBoolean(KEY_AUTO_CONNECT, value).apply()
+
+    /** Vibrate on connect / disconnect / button taps (power feature). */
+    var hapticsEnabled: Boolean
+        get() = prefs.getBoolean(KEY_HAPTICS, true)
+        set(value) = prefs.edit().putBoolean(KEY_HAPTICS, value).apply()
+
+    /** Split tunneling: "off" | "allow" | "exclude" (power feature). */
+    var splitTunnelMode: String
+        get() = prefs.getString(KEY_SPLIT_MODE, SPLIT_OFF) ?: SPLIT_OFF
+        set(value) = prefs.edit().putString(KEY_SPLIT_MODE, value).apply()
+
+    /** Packages for split tunneling — stored as a JSON array (stable iteration order). */
+    var splitTunnelPackages: List<String>
+        get() = try {
+            val arr = JSONArray(prefs.getString(KEY_SPLIT_PACKAGES, "[]") ?: "[]")
+            (0 until arr.length()).map { arr.getString(it) }
+        } catch (_: Exception) {
+            emptyList()
+        }
+        set(value) = prefs.edit()
+            .putString(KEY_SPLIT_PACKAGES, JSONArray(value).toString())
+            .apply()
+
     fun load(): TunnelOptions {
         migrateCdnDefault()
         return TunnelOptions(
@@ -30,7 +57,9 @@ class SettingsStore(context: Context) {
             inproxyCompartmentId = prefs.getString(KEY_COMPARTMENT, "") ?: "",
             cdnFrontingIpList = prefs.getString(KEY_CDN_IPS, "") ?: "",
             cdnFrontingSni = prefs.getString(KEY_CDN_SNI, "") ?: "",
-            oslUrls = prefs.getString(KEY_OSL, "") ?: ""
+            oslUrls = prefs.getString(KEY_OSL, "") ?: "",
+            splitTunnelMode = splitTunnelMode,
+            splitTunnelPackages = splitTunnelPackages
         )
     }
 
@@ -60,6 +89,8 @@ class SettingsStore(context: Context) {
             .putString(KEY_CDN_IPS, options.cdnFrontingIpList)
             .putString(KEY_CDN_SNI, options.cdnFrontingSni)
             .putString(KEY_OSL, options.oslUrls)
+            .putString(KEY_SPLIT_MODE, options.splitTunnelMode)
+            .putString(KEY_SPLIT_PACKAGES, JSONArray(options.splitTunnelPackages).toString())
             .apply()
     }
 
@@ -101,6 +132,10 @@ class SettingsStore(context: Context) {
         set(value) = prefs.edit().putString(KEY_SCAN_SNIS, value).apply()
 
     companion object {
+        const val SPLIT_OFF = "off"
+        const val SPLIT_ALLOW = "allow"
+        const val SPLIT_EXCLUDE = "exclude"
+
         private const val KEY_LANGUAGE = "language"
         private const val KEY_PROTOCOL = "protocol"
         private const val KEY_MIGRATED_CDN = "migrated_cdn_default"
@@ -113,6 +148,10 @@ class SettingsStore(context: Context) {
         private const val KEY_CDN_IPS = "cdn_fronting_ip_list"
         private const val KEY_CDN_SNI = "cdn_fronting_sni"
         private const val KEY_OSL = "osl_urls"
+        private const val KEY_AUTO_CONNECT = "auto_connect"
+        private const val KEY_HAPTICS = "haptics_enabled"
+        private const val KEY_SPLIT_MODE = "split_tunnel_mode"
+        private const val KEY_SPLIT_PACKAGES = "split_tunnel_packages"
         private const val KEY_SCAN_CF = "scan_cloudflare"
         private const val KEY_SCAN_FASTLY = "scan_fastly"
         private const val KEY_SCAN_AKAMAI = "scan_akamai"

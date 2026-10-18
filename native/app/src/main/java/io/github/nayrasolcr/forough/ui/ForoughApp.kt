@@ -8,7 +8,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,8 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material3.DropdownMenu
@@ -50,13 +52,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.DisposableEffect
 import io.github.nayrasolcr.forough.BuildConfig
 import io.github.nayrasolcr.forough.CrashLog
 import io.github.nayrasolcr.forough.EngineBridge
@@ -67,20 +72,24 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 private enum class Screen(val depth: Int) {
-    MAIN(0), SCANNER(1), SETTINGS(1), LOGS(1), ABOUT(1)
+    MAIN(0), SCANNER(1), SETTINGS(1), LOGS(1), ABOUT(1), APPS(2)
 }
 
 /**
  * ForoughApp — the Android shell of the desktop window: header bar with
- * the same tool buttons (scanner, speed test, diagnostics, logs, settings,
+ * the same tool buttons (scanner, speed test, diagnostics, settings, logs,
  * about) over the connection panel + stats panel.
+ *
+ * Motion: screens cross-fade with a directional slide + subtle zoom
+ * (forward = slide left, back = slide right), everything spring-driven.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForoughApp(
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
-    onLanguageChanged: () -> Unit
+    onLanguageChanged: () -> Unit,
+    onBatteryHelper: () -> Unit
 ) {
     var screen by rememberSaveable { mutableStateOf(Screen.MAIN) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -91,7 +100,7 @@ fun ForoughApp(
     val store = remember { SettingsStore(context.applicationContext) }
 
     // System back gesture/button returns from any sub-screen to the main
-    // panel (and exits only from MAIN) — the missing back navigation.
+    // panel (and exits only from MAIN).
     BackHandler(enabled = screen != Screen.MAIN) {
         screen = Screen.MAIN
     }
@@ -99,7 +108,21 @@ fun ForoughApp(
     val stats by ForoughBus.stats.collectAsState()
     val running by ForoughBus.running.collectAsState()
 
-    // Toasts from the engine — the desktop Adw.Toast parity.
+    // Bind the global haptics controller to this window and keep it in sync
+    // with the user's haptic-feedback setting (power features group).
+    val view = LocalView.current
+    DisposableEffect(view, store.hapticsEnabled) {
+        Haptics.bind(view)
+        Haptics.setEnabled(store.hapticsEnabled)
+        onDispose { }
+    }
+
+    // Toasts from the engine — the desktop Adw.Toast parity. Also: when the
+    // tunnel first reaches "connected", greet the user (visible confirmation
+    // that the session is live even if they're on another screen).
+    var wasConnected by remember { mutableStateOf(false) }
+    val connectedToastText = stringResource(R.string.connected_toast)
+    val disconnectedToastText = stringResource(R.string.disconnected_toast)
     LaunchedEffect(Unit) {
         ForoughBus.toast.collectLatest { message ->
             if (message != null) {
@@ -108,12 +131,59 @@ fun ForoughApp(
             }
         }
     }
+    LaunchedEffect(running) {
+        if (!running && wasConnected) {
+            wasConnected = false
+            snackbar.showSnackbar(disconnectedToastText)
+        }
+    }
+    LaunchedEffect(stats.status) {
+        if (stats.status == "connected" && running && !wasConnected) {
+            wasConnected = true
+            Haptics.confirm()
+            snackbar.showSnackbar(connectedToastText)
+        }
+    }
 
     val diagCopiedText = stringResource(R.string.diagnostics_copied)
     val speedStartedText = stringResource(R.string.speed_test_running)
     val speedUnavailableText = stringResource(R.string.speed_test_unavailable)
-    val cdnUpdatedText = stringResource(R.string.cdn_edges_updated)
     val backText = stringResource(R.string.back)
+
+    // Runs a speed test from any entry point; the engine reports the result
+    // as a toast when the numbers are in.
+    val runSpeedTest: () -> Unit = {
+        try {
+            val manager = EngineBridge.manager
+            if (manager != null && manager.isRunning) {
+                manager.runSpeedTest(manual = true)
+                scope.launch { snackbar.showSnackbar(speedStartedText) }
+            } else {
+                scope.launch { snackbar.showSnackbar(speedUnavailableText) }
+            }
+        } catch (e: Exception) {
+            ForoughBus.appendLog("speed test error: ${e.message}")
+        }
+    }
+
+    // Copies the diagnostics report to the clipboard from any entry point.
+    val copyDiagnostics: () -> Unit = {
+        try {
+            val report = EngineBridge.manager?.buildDiagnosticsReport("manual-copy")
+                ?: buildString {
+                    appendLine("Forough Android ${BuildConfig.VERSION_NAME} — tunnel not running")
+                    CrashLog.read(context)?.let { crash ->
+                        appendLine()
+                        appendLine("last crash:")
+                        append(crash)
+                    }
+                }
+            clipboard.setText(AnnotatedString(report))
+            scope.launch { snackbar.showSnackbar(diagCopiedText) }
+        } catch (e: Exception) {
+            ForoughBus.appendLog("diagnostics error: ${e.message}")
+        }
+    }
 
     val screenTitle = when (screen) {
         Screen.MAIN -> stringResource(R.string.app_name)
@@ -121,6 +191,7 @@ fun ForoughApp(
         Screen.SETTINGS -> stringResource(R.string.settings)
         Screen.LOGS -> stringResource(R.string.logs_title)
         Screen.ABOUT -> stringResource(R.string.about)
+        Screen.APPS -> stringResource(R.string.apps_title)
     }
 
     Scaffold(
@@ -128,8 +199,6 @@ fun ForoughApp(
         topBar = {
             TopAppBar(
                 title = {
-                    // Slide the title in with the screen change — small touch,
-                    // big perceived smoothness.
                     AnimatedContent(
                         targetState = screenTitle,
                         transitionSpec = {
@@ -150,9 +219,10 @@ fun ForoughApp(
                                 .clip(CircleShape)
                         )
                     } else {
-                        // Explicit back arrow on every sub-screen — mirrors
-                        // the desktop header's close/back affordance.
-                        IconButton(onClick = { screen = Screen.MAIN }) {
+                        IconButton(onClick = {
+                            Haptics.tap()
+                            screen = Screen.MAIN
+                        }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = backText
@@ -161,48 +231,35 @@ fun ForoughApp(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { screen = Screen.SCANNER }) {
+                    IconButton(onClick = {
+                        Haptics.tap()
+                        screen = Screen.SCANNER
+                    }) {
                         Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.scanner_title))
                     }
                     IconButton(onClick = {
-                        try {
-                            val manager = EngineBridge.manager
-                            if (manager != null && manager.isRunning) {
-                                manager.runSpeedTest(manual = true)
-                                scope.launch { snackbar.showSnackbar(speedStartedText) }
-                            } else {
-                                scope.launch { snackbar.showSnackbar(speedUnavailableText) }
-                            }
-                        } catch (e: Exception) {
-                            ForoughBus.appendLog("speed test error: ${e.message}")
-                        }
+                        Haptics.tap()
+                        runSpeedTest()
                     }) {
                         Icon(Icons.Outlined.Speed, contentDescription = stringResource(R.string.speed_test))
                     }
                     IconButton(onClick = {
-                        try {
-                            val report = EngineBridge.manager?.buildDiagnosticsReport("manual-copy")
-                                ?: buildString {
-                                    appendLine("Forough Android ${BuildConfig.VERSION_NAME} — tunnel not running")
-                                    CrashLog.read(context)?.let { crash ->
-                                        appendLine()
-                                        appendLine("last crash:")
-                                        append(crash)
-                                    }
-                                }
-                            clipboard.setText(AnnotatedString(report))
-                            scope.launch { snackbar.showSnackbar(diagCopiedText) }
-                        } catch (e: Exception) {
-                            ForoughBus.appendLog("diagnostics error: ${e.message}")
-                        }
+                        Haptics.tap()
+                        copyDiagnostics()
                     }) {
                         Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.diagnostics))
                     }
-                    IconButton(onClick = { screen = Screen.SETTINGS }) {
+                    IconButton(onClick = {
+                        Haptics.tap()
+                        screen = Screen.SETTINGS
+                    }) {
                         Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings))
                     }
                     Box {
-                        IconButton(onClick = { menuOpen = true }) {
+                        IconButton(onClick = {
+                            Haptics.tap()
+                            menuOpen = true
+                        }) {
                             Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.menu_more))
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -231,23 +288,16 @@ fun ForoughApp(
         }
     ) { padding ->
         // The shell is a NON-scrolling column: each screen owns its own scroll
-        // container. A scrollable shell would hand every screen unbounded
-        // height constraints, and any lazy list (the logs view) crashes with
-        // "Vertically scrollable component was measured with an infinity
-        // maximum height constraints" the moment it composes.
-        //
-        // Screens cross-fade/slide instead of hard-swapping — the "stiff UI"
-        // fix. Direction follows the screen depth (into the app = slide left,
-        // back out = slide right), so navigation reads spatially.
+        // container (lazy lists inside an unbounded shell crash on measure).
         AnimatedContent(
             targetState = screen,
             transitionSpec = {
                 val forward = targetState.depth >= initialState.depth
                 val sign = if (forward) 1 else -1
-                val fade = tween<Float>(260)
-                val slide = tween<IntOffset>(260)
-                (fadeIn(fade) + slideInHorizontally(slide) { sign * it / 4 })
-                    .togetherWith(fadeOut(fade) + slideOutHorizontally(slide) { -sign * it / 4 })
+                val fade = tween<Float>(240)
+                val slide = tween<IntOffset>(300)
+                (fadeIn(fade) + slideInHorizontally(slide) { sign * it / 3 })
+                    .togetherWith(fadeOut(fade) + slideOutHorizontally(slide) { -sign * it / 3 })
             },
             label = "screen",
             modifier = Modifier
@@ -266,13 +316,21 @@ fun ForoughApp(
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            ConnectionPanel(
-                                stats = stats,
-                                running = running,
-                                onConnect = onConnect,
-                                onDisconnect = onDisconnect
-                            )
-                            StatsPanel(stats = stats, running = running)
+                            StaggeredItem(index = 0) {
+                                ConnectionPanel(
+                                    stats = stats,
+                                    running = running,
+                                    onConnect = onConnect,
+                                    onDisconnect = onDisconnect,
+                                    onSpeedTest = runSpeedTest,
+                                    onDiagnostics = copyDiagnostics,
+                                    onLogs = { screen = Screen.LOGS },
+                                    onAbout = { screen = Screen.ABOUT }
+                                )
+                            }
+                            StaggeredItem(index = 1) {
+                                StatsPanel(stats = stats, running = running)
+                            }
                         }
                     }
                     Screen.SCANNER -> ScannerScreen(
@@ -282,7 +340,14 @@ fun ForoughApp(
                     Screen.SETTINGS -> SettingsScreen(
                         store = store,
                         onSave = { message -> ForoughBus.setToast(message) },
-                        onLanguageChanged = onLanguageChanged
+                        onLanguageChanged = onLanguageChanged,
+                        onBatteryHelper = onBatteryHelper,
+                        onOpenApps = { screen = Screen.APPS }
+                    )
+                    Screen.APPS -> AppsScreen(
+                        store = store,
+                        onToast = { message -> ForoughBus.setToast(message) },
+                        onBack = { screen = Screen.SETTINGS }
                     )
                     Screen.LOGS -> LogsScreen()
                     Screen.ABOUT -> AboutScreen()

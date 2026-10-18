@@ -10,8 +10,25 @@
     <string name="status_reconnecting">Reconnecting…</string>
     <string name="status_disconnecting">Disconnecting…</string>
     <string name="status_connected_in">Connected in %1$.1fs</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_trying_hint">Still working on it — a moment more. If it stays stuck, try another mode or region.</string>
+    <string name="connected_toast">Connected — enjoy the open internet</string>
+    <string name="disconnected_toast">Disconnected</string>
+
+    <!-- Live speeds -->
+    <string name="speed_down">Download</string>
+    <string name="speed_up">Upload</string>
+    <string name="session_total">Session traffic</string>
+    <string name="graph_title">Live traffic — last 60 seconds</string>
+
+    <!-- Quick actions -->
+    <string name="quick_speed">Speed test</string>
+    <string name="quick_diag">Diagnostics</string>
+    <string name="quick_logs">Logs</string>
+    <string name="quick_about">About</string>
 
     <!-- Stats panel -->
+    <string name="stats_title">Session details</string>
     <string name="stats_status">Status</string>
     <string name="stats_protocol">Protocol</string>
     <string name="stats_tunnel">Tunnel</string>
@@ -85,6 +102,34 @@
     <string name="settings_advanced">Advanced</string>
     <string name="settings_osl">OSL server list URLs</string>
     <string name="settings_osl_desc">Obfuscated server list root URLs; leave empty for the standard list</string>
+
+    <!-- Power features -->
+    <string name="settings_power">Power features</string>
+    <string name="settings_power_desc">Extras that make the tunnel tougher and more convenient.</string>
+    <string name="settings_auto_connect">Auto-connect on launch</string>
+    <string name="settings_auto_connect_desc">Start the tunnel as soon as you open Forough</string>
+    <string name="settings_haptics">Haptic feedback</string>
+    <string name="settings_haptics_desc">Vibrate on connect, disconnect and button taps</string>
+    <string name="settings_split_tunnel">Split tunneling</string>
+    <string name="split_mode_off">All apps through the VPN</string>
+    <string name="split_mode_allow">Only selected apps through the VPN</string>
+    <string name="split_mode_exclude">Selected apps bypass the VPN</string>
+    <string name="settings_split_pick">Choose apps…</string>
+    <string name="split_summary_fmt">%1$d apps selected</string>
+    <string name="apps_title">Choose apps</string>
+    <string name="apps_search_hint">Search apps…</string>
+    <string name="apps_select_all">Select all</string>
+    <string name="apps_clear">Clear</string>
+    <string name="apps_save">Save selection</string>
+    <string name="apps_saved_fmt">%1$d apps saved — applies on next connect</string>
+    <string name="apps_loading">Loading installed apps…</string>
+    <string name="settings_battery">Battery optimization</string>
+    <string name="settings_battery_desc">Ask Android to keep Forough alive in the background (recommended on Xiaomi, Samsung, Huawei)</string>
+    <string name="settings_battery_ok">Already exempt from battery optimization</string>
+    <string name="settings_alwayson">Always-on VPN &amp; kill switch</string>
+    <string name="settings_alwayson_desc">Open Android\'s VPN settings to enable Always-on and “Block connections without VPN”</string>
+    <string name="settings_tile_hint">Tip: add the Forough tile to Quick Settings to connect from the notification shade.</string>
+
     <string name="settings_interface">Interface</string>
     <string name="settings_language">Language</string>
     <string name="lang_system">System</string>
@@ -92,11 +137,13 @@
     <string name="lang_en">English</string>
     <string name="settings_save">Save</string>
     <string name="settings_saved">Settings saved</string>
-    <string name="settings_note">Changes apply on the next connect. Language changes take effect immediately.</string>
+    <string name="settings_note">Connection changes apply on the next connect. Language and interface changes take effect immediately.</string>
 
     <!-- Logs / About / Tools -->
     <string name="logs_title">Tunnel logs</string>
     <string name="logs_empty">No logs yet. Connect to populate this view.</string>
+    <string name="logs_copy">Copy logs</string>
+    <string name="logs_copied">Logs copied to clipboard</string>
     <string name="about">About</string>
     <string name="about_tagline">Forough — a bright window to the open internet</string>
     <string name="about_body">Forough is a fast, beautiful VPN client for the open internet — built on the Psiphon network, with a native Android interface, full Persian RTL support, a manual CDN edge scanner, a live traffic graph, a built-in speed test, and automatic tunnel restarts. Unofficial project — not affiliated with Psiphon Inc. Learn more at psiphon.ca.</string>
@@ -107,6 +154,7 @@
     <string name="speed_test">Run speed test</string>
     <string name="speed_test_running">Speed test running — numbers land in the log and diagnostics</string>
     <string name="speed_test_unavailable">Connect first, then run the speed test</string>
+    <string name="speed_test_done_fmt">Speed test done — see the logs screen for the full report</string>
     <string name="cdn_edges_updated">CDN edges updated</string>
     <string name="menu_more">More</string>
     <string name="back">Back</string>

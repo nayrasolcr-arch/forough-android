@@ -36,6 +36,10 @@ class VpnManager private constructor() {
     private val tunFd = AtomicReference<ParcelFileDescriptor?>(null)
     private val isRoutingThroughTunnel = AtomicBoolean(false)
     @Volatile private var shareProxyOnNetwork = false
+    // Split tunneling filter (Android power feature): which apps ride the
+    // VPN and which bypass it. Applied at vpnEstablish() time.
+    @Volatile private var splitTunnelMode: String = "off"
+    @Volatile private var splitTunnelPackages: List<String> = emptyList()
     private var tun2SocksThread: Thread? = null
     private var builderProviderRef: WeakRef? = null
 
@@ -55,6 +59,15 @@ class VpnManager private constructor() {
         shareProxyOnNetwork = share
     }
 
+    /**
+     * Configure the per-app filter: "allow" = only the listed apps ride the
+     * VPN; "exclude" = the listed apps bypass it; anything else = off.
+     */
+    fun setSplitTunnelFilter(mode: String, packages: List<String>) {
+        splitTunnelMode = mode
+        splitTunnelPackages = packages.filter { it.isNotBlank() }.distinct()
+    }
+
     /** Pick a private address and create the VPN interface. */
     @Synchronized
     fun vpnEstablish() {
@@ -68,6 +81,8 @@ class VpnManager private constructor() {
             .setMtu(VPN_INTERFACE_MTU)
             .addAddress(addr.ipAddress, addr.prefixLength)
             .addDnsServer(addr.router)
+
+        applySplitTunnelFilter(builder)
 
         if (shareProxyOnNetwork) {
             addLanExcludedRoutes(builder)
@@ -210,6 +225,39 @@ class VpnManager private constructor() {
     }
 
     // ----- LAN-sharing route exclusion (RFC 1918), ported verbatim -----
+
+    /**
+     * Per-app routing — VpnService.Builder.addAllowedApplication only accepts
+     * installed packages, so unknown entries are skipped with a log line
+     * instead of failing the whole establish (uninstalled apps etc.).
+     */
+    private fun applySplitTunnelFilter(builder: VpnService.Builder) {
+        val mode = splitTunnelMode
+        if (mode != "allow" && mode != "exclude") return
+        val packages = splitTunnelPackages
+        if (packages.isEmpty()) return
+
+        var applied = 0
+        for (pkg in packages) {
+            try {
+                if (mode == "allow") {
+                    builder.addAllowedApplication(pkg)
+                } else {
+                    builder.addDisallowedApplication(pkg)
+                }
+                applied++
+            } catch (e: Exception) {
+                Log.w(TAG, "split tunnel: skipping $pkg — ${e.message}")
+            }
+        }
+        if (applied == 0 && mode == "allow") {
+            // An allow-list that matched nothing routes no apps at all —
+            // traffic goes direct (VPN effectively idle) rather than being
+            // blocked; the log line makes the cause visible.
+            Log.w(TAG, "split tunnel allow-list is empty after filtering — no apps will be routed")
+        }
+        Log.i(TAG, "split tunnel $mode applied to $applied/${packages.size} packages")
+    }
 
     private fun addLanExcludedRoutes(builder: VpnService.Builder) {
         if (Build.VERSION.SDK_INT >= 33) {
